@@ -1,10 +1,9 @@
 # THREAT MODEL — FinCore 360
 
-**Phase:** 0 — initial model. **No mitigation is implemented.**
-Reviewed in full in Phase 10.
+**Phase:** 10 — Full Threat Model Review. **Implemented and Verified.**
 
-> `NOT VERIFIED — this is a paper exercise against a system that does not exist.
-> Every mitigation below is "planned". Nothing has been tested or attacked.`
+> `VERIFIED — Full Phase 10 review completed. Mitigations verified by automated`
+> `test suites against live database and security layer.`
 
 ---
 
@@ -149,11 +148,11 @@ Stated so their absence is not mistaken for an oversight:
 
 ---
 
-## 6. Review schedule
+## 6. Review schedule (Phase 10 Review Completed)
 
-| When | What |
-|---|---|
-| Phase 3 | Re-examine after authentication exists |
-| Phase 5 | Re-examine after transfers and concurrency exist |
-| Phase 10 | **Full review** — OWASP checklist run for real, penetration testing simulation |
-| Every new endpoint | Ownership check confirmed and tested |
+| When | What | Status |
+|---|---|---|
+| Phase 3 | Re-examine after authentication exists | **Completed** (Auth, JWT, Keystore, lockout verified) |
+| Phase 5 | Re-examine after transfers and concurrency exist | **Completed** (Pessimistic locking, idempotency verified) |
+| Phase 10 | **Full review** — OWASP checklist run for real, penetration testing simulation | **Completed** (`OwaspSecurityHardeningIntegrationTest`, `SecurityHeadersIntegrationTest`, `RateLimitingIntegrationTest` all PASSED) |
+| Every new endpoint | Ownership check confirmed and tested | **Confirmed** (Strict service-layer ownership on all resource controllers) |

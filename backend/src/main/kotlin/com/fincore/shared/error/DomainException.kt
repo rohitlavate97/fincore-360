@@ -32,3 +32,11 @@ class InvalidStateTransitionException(
     HttpStatus.CONFLICT,
     "Transition from $from to $to is not permitted",
 )
+
+class AuthenticationFailedException(
+    message: String = "Authentication failed"
+) : DomainException(ErrorCode.AUTHENTICATION_FAILED, HttpStatus.UNAUTHORIZED, message)
+
+class ConflictException(
+    message: String
+) : DomainException(ErrorCode.VALIDATION_FAILED, HttpStatus.CONFLICT, message)

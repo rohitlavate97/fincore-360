@@ -5,7 +5,7 @@
 > If a capability is not listed under COMPLETED with a verification method,
 > it does not exist.
 
-**Phase:** 5 — Transactions and Concurrency
+**Phase:** 6 — Offline and Sync
 **Last updated:** 2026-08-28
 
 ---
@@ -126,11 +126,27 @@ Toolchain versions verified against official sources on 2026-08-28, not assumed:
 | Retrofit TransactionsApi, TransactionRepositoryImpl, and TransactionsViewModel | `TransactionRepositoryTest`, `TransactionsViewModelTest` PASSED |
 | Navigation Compose integration in :app (Transfer route, Dashboard quick-action) | `./gradlew.bat test` & `assembleDebug` → **BUILD SUCCESSFUL** |
 
+### Phase 6 — Offline and Sync (Android)
+
+| Item | Verified by |
+|---|---|
+| Room PendingMutationEntity, PendingMutationDao, and DB version 4 | `:core:database:test` PASSED |
+| SyncMetadataDao with observeSyncMetadata Flow for reactive staleness | `:core:database:test` PASSED |
+| NetworkMonitor interface and ConnectivityManagerNetworkMonitor (NET_CAPABILITY_INTERNET) | `NetworkMonitorTest` PASSED |
+| SyncManager interface and SyncStatus enum in :core:common.sync | `:core:common:test` PASSED |
+| DefaultSyncManager with server-wins conflict resolution & 30s throttle | `DefaultSyncManagerTest` PASSED (3/3 tests) |
+| WorkManager SyncWorker (Hilt entry point) & SyncWorkScheduler | `SyncWorkerTest` PASSED, `assembleDebug` PASSED |
+| Material 3 AccountsScreen displaying offline mode banner and last-synced timestamp | `AccountsViewModelTest` PASSED |
+| Material 3 TransferScreen & ViewModel enforcing ONLINE_ONLY transfer blocking | `TransferViewModelTest` PASSED |
+| **Exit Criterion 1**: Cached data renders offline from Room SSOT with timestamp | `OfflineSyncIntegrationTest` PASSED |
+| **Exit Criterion 2**: Sync restores correct state when connectivity restored | `OfflineSyncIntegrationTest` PASSED |
+| Full test suite passing across all 16 Android modules and debug APK | `./gradlew.bat test` & `assembleDebug` → **BUILD SUCCESSFUL** |
+
 ---
 
 ## IN PROGRESS
 
-Phase 5 is 100% complete and fully verified. Ready for Phase 6 (Offline and Sync).
+Phase 6 is 100% complete and fully verified. Ready for Phase 7 (Audit and Events).
 
 ---
 
@@ -184,7 +200,7 @@ Phase 5 is 100% complete and fully verified. Ready for Phase 6 (Offline and Sync
 | 3 | Authentication | **Complete** — verified 2026-08-28 | Login E2E, refresh, lockout, reuse detection, 401 anon, 403 role, Keystore, single-flight, M3 LoginScreen |
 | 4 | Accounts | **Complete** — verified 2026-08-28 | Paginated API, Android renders all four screen states, Room SSOT, 53 backend tests green |
 | 5 | Transactions and Concurrency | **Complete** — verified 2026-08-28 | Idempotency test passes; concurrent transfer preserves balance integrity |
-| 6 | Offline and Sync | Not started | Cached data offline; sync restores correct state |
+| 6 | Offline and Sync | **Complete** — verified 2026-08-28 | Cached data offline; sync restores correct state |
 | 7 | Audit and Events | Not started | Transfer audit trail complete initiation → completion |
 | 8 | Notifications | Not started | Notification received, tap deep-links to correct transaction |
 | 9 | Web Portal | Not started | Each role sees only permitted screens; API 403 on violation |
@@ -207,3 +223,4 @@ Phase 5 is 100% complete and fully verified. Ready for Phase 6 (Offline and Sync
 | 2026-08-28 | 3 | Authentication built end-to-end across Backend and Android. Asymmetric RS256 JWT, rotating refresh tokens with reuse detection, 5-attempt lockout, immutable audit logging, Spring Security RBAC. Android Keystore AES-256 GCM storage, single-flight refresh authenticator with Mutex, Retrofit AuthApi/Repository/UseCases, Material 3 LoginScreen and LoginViewModel with ScreenState, Navigation route guards. All 45 backend tests and all Android tests green, debug APK built cleanly. |
 | 2026-08-28 | 4 | Accounts built end-to-end across Backend and Android. Account JPA entity with NUMERIC(19,4) balances and bpchar currency type code, AccountRepository with pagination and customer-scoped queries, AccountService with unique account number generation, AccountController (paginated GET, POST, GET /{id} with 404 enumeration prevention), Room AccountEntity and AccountDao in :core:database, Retrofit AccountApi and repository with Room SSOT in :feature:accounts, Material 3 AccountsScreen and AccountsViewModel rendering all 4 ScreenStates (Loading, Success, Empty, Error), FinCoreNavGraph integration. All 53 backend tests and Android tests green, debug APK built cleanly. |
 | 2026-08-28 | 5 | Transactions and Concurrency built end-to-end across Backend and Android. PostgreSQL-backed idempotency service (ADR-010), Transaction domain entity with state machine validation, deterministic ascending pessimistic account row-locking (DATABASE-DESIGN.md §3), TransferService with balance verification, TransferController requiring Idempotency-Key header, concurrent transfer test proving balance integrity and zero deadlocks, concurrent idempotency race test proving single execution and zero double-debits. Room TransactionEntity, TransactionDao, and database version 3 in :core:database. Retrofit TransferApi and TransactionsApi with Room caching SSOT. Material 3 TransferScreen, TransferViewModel, and TransactionHistoryScreen. FinCoreNavGraph integration. All 67 backend tests and all Android tests green, debug APK built cleanly. |
+| 2026-08-28 | 6 | Offline and Sync built end-to-end across Android architecture. Room PendingMutationEntity, PendingMutationDao, and database version 4 in :core:database. NetworkMonitor and ConnectivityManagerNetworkMonitor registering NetworkCallback with NET_CAPABILITY_INTERNET in :core:network. SyncManager interface and SyncStatus enum in :core:common. DefaultSyncManager orchestrating Accounts & Transactions sync, ADR-011 server-wins conflict resolution, and 30-second foreground throttle. WorkManager SyncWorker (Hilt entry point) and SyncWorkScheduler with CONNECTED constraints and exponential backoff, initialized in FinCoreApplication. Material 3 AccountsScreen with offline warning banner and last-synced timestamp (ADR-011 staleness requirement). Material 3 TransferScreen and TransferViewModel enforcing ONLINE_ONLY classification (blocking offline transfers without fake success, never queued in WorkManager). All 16 Android modules green and debug APK assembled. |

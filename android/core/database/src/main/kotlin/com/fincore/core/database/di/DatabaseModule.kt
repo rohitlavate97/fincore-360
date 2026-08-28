@@ -52,4 +52,10 @@ object DatabaseModule {
     fun providePendingMutationDao(database: FinCoreDatabase): PendingMutationDao {
         return database.pendingMutationDao()
     }
+
+    @Provides
+    @Singleton
+    fun provideNotificationDao(database: FinCoreDatabase): com.fincore.core.database.dao.NotificationDao {
+        return database.notificationDao()
+    }
 }

@@ -29,6 +29,9 @@ enum class ErrorCode {
     TRANSFER_INVALID_STATE_TRANSITION,
     ACCOUNT_NOT_ACTIVE,
 
+    // Rate Limiting (Phase 10)
+    RATE_LIMIT_EXCEEDED,
+
     // Infrastructure
     DEPENDENCY_UNAVAILABLE,
     INTERNAL_ERROR,

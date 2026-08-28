@@ -53,7 +53,7 @@ class SchemaMigrationTest {
 
         listOf(
             "accounts", "audit_events", "customers",
-            "idempotency_keys", "refresh_tokens", "transactions",
+            "idempotency_keys", "refresh_tokens", "transactions", "users",
         ).forEach { expected ->
             assertTrue(tables.contains(expected), "missing table '$expected'; found $tables")
         }

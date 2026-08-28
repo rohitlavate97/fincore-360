@@ -38,7 +38,11 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
+dependencies {    // ── Security & Authentication (Phase 3) ──────────────────────────────
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+    testImplementation("org.springframework.security:spring-security-test")
+
     // ── Web / API ────────────────────────────────────────────────────────
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-validation")

@@ -40,3 +40,19 @@ class AuthenticationFailedException(
 class ConflictException(
     message: String
 ) : DomainException(ErrorCode.VALIDATION_FAILED, HttpStatus.CONFLICT, message)
+
+class InsufficientFundsException(
+    message: String = "Insufficient available balance to complete transfer"
+) : DomainException(ErrorCode.TRANSFER_INSUFFICIENT_FUNDS, HttpStatus.UNPROCESSABLE_ENTITY, message)
+
+class AccountNotActiveException(
+    message: String = "Account is not active"
+) : DomainException(ErrorCode.ACCOUNT_NOT_ACTIVE, HttpStatus.UNPROCESSABLE_ENTITY, message)
+
+class IdempotencyInProgressException(
+    message: String = "A request with this idempotency key is currently being processed"
+) : DomainException(ErrorCode.IDEMPOTENCY_REQUEST_IN_PROGRESS, HttpStatus.CONFLICT, message)
+
+class IdempotencyKeyRequiredException(
+    message: String = "Idempotency-Key header is required"
+) : DomainException(ErrorCode.IDEMPOTENCY_KEY_REQUIRED, HttpStatus.BAD_REQUEST, message)

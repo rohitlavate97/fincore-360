@@ -1,0 +1,60 @@
+# ── Secrets — never commit ────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.jks
+*.keystore
+secrets/
+local.properties
+
+# ── Gradle / Android ──────────────────────────────────────────────
+.gradle/
+build/
+captures/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# ── JVM / Maven ───────────────────────────────────────────────────
+target/
+*.class
+*.jar
+# The wrapper jar MUST be committed or `./gradlew` fails on a fresh clone.
+# Note the leading **/ — a pattern containing a slash is anchored to this
+# file's directory, so `!gradle/wrapper/...` would miss `backend/gradle/...`.
+!**/gradle/wrapper/gradle-wrapper.jar
+hs_err_pid*
+replay_pid*
+
+# ── Node / Web ────────────────────────────────────────────────────
+node_modules/
+dist/
+.vite/
+coverage/
+*.tsbuildinfo
+
+# ── IDE ───────────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# ── OS ────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Terraform ─────────────────────────────────────────────────────
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+
+# ── Logs / temp ───────────────────────────────────────────────────
+*.log
+tmp/

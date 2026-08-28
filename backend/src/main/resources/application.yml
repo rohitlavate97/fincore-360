@@ -1,0 +1,81 @@
+spring:
+  application:
+    name: fincore-backend
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/fincore}
+    username: ${DB_USERNAME:fincore}
+    password: ${DB_PASSWORD:fincore}
+    hikari:
+      # Pool size interacts directly with lock hold time. See FM-BACKEND-001.
+      maximum-pool-size: ${DB_POOL_MAX:10}
+      minimum-idle: 2
+
+  jpa:
+    # Hibernate may VERIFY that entities match the schema. It may never modify
+    # it. An ORM mutating a schema that holds balances is how data is lost.
+    # See ADR-017.
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  error:
+    # Never leak framework error pages. All errors go through
+    # GlobalExceptionHandler and the API-DESIGN.md §3 contract.
+    include-stacktrace: never
+    include-message: never
+  servlet:
+    application-display-name: fincore-backend
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      # Dependency detail is operator information, not public. Restricted here;
+      # revisit when authentication exists (Phase 3).
+      show-details: never
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+logging:
+  # Spring Boot 4 has built-in structured JSON logging. This satisfies
+  # OBSERVABILITY.md §2 with no extra dependency. MDC entries -- including
+  # correlationId -- are included automatically.
+  structured:
+    format:
+      console: ${LOG_FORMAT:}
+    ecs:
+      service:
+        name: fincore-backend
+        version: ${APP_VERSION:0.1.0-SNAPSHOT}
+        environment: ${APP_ENV:development}
+  level:
+    root: INFO
+    com.fincore: ${LOG_LEVEL_FINCORE:INFO}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

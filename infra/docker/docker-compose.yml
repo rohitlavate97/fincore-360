@@ -1,0 +1,59 @@
+# FinCore 360 — local development stack
+#
+# NOT VERIFIED: this file has never been run. The machine it was written on has
+# no Docker daemon, so `docker compose up` has not been executed and no service
+# here has started. Treat it as design intent until it has been run once.
+#
+# Redis is added in Phase 3, Kafka in Phase 7 (ADR-008, ADR-009). They are
+# deliberately absent rather than present-and-unused.
+
+services:
+  postgres:
+    image: postgres:18.6-alpine
+    container_name: fincore-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-fincore}
+      POSTGRES_USER: ${DB_USERNAME:-fincore}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-fincore}
+      # Deterministic collation — avoids index-ordering differences between
+      # developer machines and CI.
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # The application must not start before the database can accept queries.
+      # Without this, startup fails on a cold `up` — FM-INFRA-002.
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-fincore} -d ${DB_NAME:-fincore}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    build:
+      context: ../..
+      dockerfile: infra/docker/backend.Dockerfile
+    container_name: fincore-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-fincore}
+      DB_USERNAME: ${DB_USERNAME:-fincore}
+      DB_PASSWORD: ${DB_PASSWORD:-fincore}
+      APP_ENV: development
+      # Structured JSON logs. Unset for human-readable local output.
+      LOG_FORMAT: ecs
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+volumes:
+  postgres-data:

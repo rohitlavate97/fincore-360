@@ -1,0 +1,32 @@
+package com.fincore.core.database.di
+
+import android.content.Context
+import androidx.room.Room
+import com.fincore.core.database.FinCoreDatabase
+import com.fincore.core.database.dao.SyncMetadataDao
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object DatabaseModule {
+    @Provides
+    @Singleton
+    fun provideDatabase(@ApplicationContext context: Context): FinCoreDatabase {
+        return Room.databaseBuilder(
+            context,
+            FinCoreDatabase::class.java,
+            "fincore.db"
+        ).build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSyncMetadataDao(database: FinCoreDatabase): SyncMetadataDao {
+        return database.syncMetadataDao()
+    }
+}

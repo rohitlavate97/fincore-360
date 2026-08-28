@@ -44,7 +44,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus,metrics
   endpoint:
     health:
       # Dependency detail is operator information, not public. Restricted here;

@@ -25,7 +25,8 @@ class TransferService(
     private val idempotencyService: IdempotencyService,
     private val auditLogRepository: AuditLogRepository,
     private val outboxService: OutboxService,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val bankingMetricsService: com.fincore.shared.observability.BankingMetricsService? = null
 ) {
 
     @Transactional
@@ -40,6 +41,7 @@ class TransferService(
         )
 
         if (resolution is IdempotencyResolution.Replay) {
+            bankingMetricsService?.recordIdempotencyReplay(endpoint)
             val replayed = objectMapper.readValue(resolution.body, TransferResult::class.java)
             return replayed.copy(replayed = true)
         }
@@ -49,6 +51,9 @@ class TransferService(
         val correlationId = CorrelationIdFilter.current()?.let {
             runCatching { UUID.fromString(it) }.getOrNull()
         } ?: UUID.randomUUID()
+
+        bankingMetricsService?.recordTransferInitiated(command.currency)
+        val startTime = System.currentTimeMillis()
 
         // 2. Persist initial transaction as PROCESSING
         var transaction = transactionRepository.saveAndFlush(
@@ -158,6 +163,9 @@ class TransferService(
             val bodyJson = objectMapper.writeValueAsString(result)
             idempotencyService.complete(idempotencyRecord.id, 201, bodyJson)
 
+            val durationMillis = System.currentTimeMillis() - startTime
+            bankingMetricsService?.recordTransferCompleted(command.currency, durationMillis)
+
             return result
         } catch (e: Exception) {
             // Failure audit log & outbox event
@@ -186,6 +194,14 @@ class TransferService(
                     "status" to "FAILED"
                 )
             )
+
+            val reason = when (e) {
+                is com.fincore.shared.error.InsufficientFundsException -> "INSUFFICIENT_FUNDS"
+                is com.fincore.shared.error.AccountNotActiveException -> "ACCOUNT_NOT_ACTIVE"
+                is com.fincore.shared.error.ResourceNotFoundException -> "RESOURCE_NOT_FOUND"
+                else -> "INTERNAL_ERROR"
+            }
+            bankingMetricsService?.recordTransferFailed(command.currency, reason)
 
             runCatching {
                 transaction.transitionTo(TransactionStatus.FAILED)

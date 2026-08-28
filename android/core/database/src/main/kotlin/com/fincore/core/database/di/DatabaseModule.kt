@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.fincore.core.database.FinCoreDatabase
 import com.fincore.core.database.dao.AccountDao
+import com.fincore.core.database.dao.PendingMutationDao
 import com.fincore.core.database.dao.SyncMetadataDao
 import com.fincore.core.database.dao.TransactionDao
 import dagger.Module
@@ -44,5 +45,11 @@ object DatabaseModule {
     @Singleton
     fun provideTransactionDao(database: FinCoreDatabase): TransactionDao {
         return database.transactionDao()
+    }
+
+    @Provides
+    @Singleton
+    fun providePendingMutationDao(database: FinCoreDatabase): PendingMutationDao {
+        return database.pendingMutationDao()
     }
 }

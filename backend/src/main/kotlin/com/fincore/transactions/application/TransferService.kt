@@ -5,6 +5,7 @@ import com.fincore.shared.audit.AuditLogRepository
 import com.fincore.shared.correlation.CorrelationIdFilter
 import com.fincore.shared.idempotency.IdempotencyResolution
 import com.fincore.shared.idempotency.IdempotencyService
+import com.fincore.shared.outbox.OutboxService
 import com.fincore.transactions.domain.Transaction
 import com.fincore.transactions.domain.TransactionStatus
 import com.fincore.transactions.domain.TransactionType
@@ -19,10 +20,11 @@ import java.util.UUID
 
 @Service
 class TransferService(
-    private val accountService: AccountService,
     private val transactionRepository: TransactionRepository,
+    private val accountService: AccountService,
     private val idempotencyService: IdempotencyService,
     private val auditLogRepository: AuditLogRepository,
+    private val outboxService: OutboxService,
     private val objectMapper: ObjectMapper
 ) {
 
@@ -46,7 +48,7 @@ class TransferService(
 
         val correlationId = CorrelationIdFilter.current()?.let {
             runCatching { UUID.fromString(it) }.getOrNull()
-        }
+        } ?: UUID.randomUUID()
 
         // 2. Persist initial transaction as PROCESSING
         var transaction = transactionRepository.saveAndFlush(
@@ -66,8 +68,37 @@ class TransferService(
             )
         )
 
+        // 3. Complete Audit Trail: TRANSFER_INITIATED
+        auditLogRepository.append(
+            eventType = "TRANSFER_INITIATED",
+            actorId = command.callerUserId,
+            actorRole = "ROLE_CUSTOMER",
+            resourceType = "TRANSACTION",
+            resourceId = transaction.id,
+            outcome = "SUCCESS",
+            reason = "Transfer initiated",
+            ipAddress = httpRequest?.remoteAddr,
+            userAgent = httpRequest?.getHeader("User-Agent"),
+            correlationId = correlationId
+        )
+
+        outboxService.recordEvent(
+            eventType = "TRANSFER_INITIATED",
+            aggregateType = "TRANSACTION",
+            aggregateId = transaction.id,
+            actorId = command.callerUserId,
+            correlationId = correlationId,
+            payload = mapOf(
+                "transactionId" to transaction.id.toString(),
+                "sourceAccountId" to command.sourceAccountId.toString(),
+                "destinationAccountId" to command.destinationAccountId.toString(),
+                "amount" to command.amount.toPlainString(),
+                "currency" to command.currency
+            )
+        )
+
         try {
-            // 3. Execute balance transfer under deterministic pessimistic lock
+            // 4. Execute balance transfer under deterministic pessimistic lock
             accountService.executeTransferBalances(
                 sourceAccountId = command.sourceAccountId,
                 destinationAccountId = command.destinationAccountId,
@@ -76,11 +107,11 @@ class TransferService(
                 callerCustomerId = command.callerCustomerId
             )
 
-            // 4. Transition to COMPLETED
+            // 5. Transition to COMPLETED
             transaction.transitionTo(TransactionStatus.COMPLETED)
             transaction = transactionRepository.saveAndFlush(transaction)
 
-            // 5. Audit log
+            // 6. Complete Audit Trail: TRANSFER_COMPLETED
             auditLogRepository.append(
                 eventType = "TRANSFER_COMPLETED",
                 actorId = command.callerUserId,
@@ -92,6 +123,22 @@ class TransferService(
                 ipAddress = httpRequest?.remoteAddr,
                 userAgent = httpRequest?.getHeader("User-Agent"),
                 correlationId = correlationId
+            )
+
+            outboxService.recordEvent(
+                eventType = "TRANSFER_COMPLETED",
+                aggregateType = "TRANSACTION",
+                aggregateId = transaction.id,
+                actorId = command.callerUserId,
+                correlationId = correlationId,
+                payload = mapOf(
+                    "transactionId" to transaction.id.toString(),
+                    "sourceAccountId" to command.sourceAccountId.toString(),
+                    "destinationAccountId" to command.destinationAccountId.toString(),
+                    "amount" to transaction.amount.toPlainString(),
+                    "currency" to transaction.currency,
+                    "status" to "COMPLETED"
+                )
             )
 
             val result = TransferResult(
@@ -107,18 +154,13 @@ class TransferService(
                 replayed = false
             )
 
-            // 6. Complete idempotency record
-            idempotencyService.complete(
-                recordId = idempotencyRecord.id,
-                status = 201,
-                responseBody = objectMapper.writeValueAsString(result)
-            )
+            // 7. Complete idempotency record
+            val bodyJson = objectMapper.writeValueAsString(result)
+            idempotencyService.complete(idempotencyRecord.id, 201, bodyJson)
 
             return result
         } catch (e: Exception) {
-            transaction.transitionTo(TransactionStatus.FAILED)
-            transactionRepository.saveAndFlush(transaction)
-
+            // Failure audit log & outbox event
             auditLogRepository.append(
                 eventType = "TRANSFER_FAILED",
                 actorId = command.callerUserId,
@@ -126,11 +168,29 @@ class TransferService(
                 resourceType = "TRANSACTION",
                 resourceId = transaction.id,
                 outcome = "FAILURE",
-                reason = e.message,
+                reason = e.message ?: "Transfer failed",
                 ipAddress = httpRequest?.remoteAddr,
                 userAgent = httpRequest?.getHeader("User-Agent"),
                 correlationId = correlationId
             )
+
+            outboxService.recordEvent(
+                eventType = "TRANSFER_FAILED",
+                aggregateType = "TRANSACTION",
+                aggregateId = transaction.id,
+                actorId = command.callerUserId,
+                correlationId = correlationId,
+                payload = mapOf(
+                    "transactionId" to transaction.id.toString(),
+                    "reason" to (e.message ?: "Transfer failed"),
+                    "status" to "FAILED"
+                )
+            )
+
+            runCatching {
+                transaction.transitionTo(TransactionStatus.FAILED)
+                transactionRepository.saveAndFlush(transaction)
+            }
             throw e
         }
     }

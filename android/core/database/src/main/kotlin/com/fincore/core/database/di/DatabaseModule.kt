@@ -3,6 +3,7 @@ package com.fincore.core.database.di
 import android.content.Context
 import androidx.room.Room
 import com.fincore.core.database.FinCoreDatabase
+import com.fincore.core.database.dao.AccountDao
 import com.fincore.core.database.dao.SyncMetadataDao
 import dagger.Module
 import dagger.Provides
@@ -21,12 +22,20 @@ object DatabaseModule {
             context,
             FinCoreDatabase::class.java,
             "fincore.db"
-        ).build()
+        )
+            .fallbackToDestructiveMigration(true)
+            .build()
     }
 
     @Provides
     @Singleton
     fun provideSyncMetadataDao(database: FinCoreDatabase): SyncMetadataDao {
         return database.syncMetadataDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideAccountDao(database: FinCoreDatabase): AccountDao {
+        return database.accountDao()
     }
 }

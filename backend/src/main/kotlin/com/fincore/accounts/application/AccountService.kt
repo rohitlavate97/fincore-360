@@ -86,6 +86,11 @@ class AccountService(
         return account.toView()
     }
 
+    @Transactional(readOnly = true)
+    fun findAccountById(accountId: UUID): AccountView? {
+        return accountRepository.findById(accountId).map { it.toView() }.orElse(null)
+    }
+
     @Transactional
     fun executeTransferBalances(
         sourceAccountId: UUID,

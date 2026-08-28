@@ -1,17 +1,13 @@
 package com.fincore.notifications.api
 
-import com.fincore.identity.domain.Role
-import com.fincore.identity.infrastructure.UserRepository
 import com.fincore.notifications.api.dto.NotificationResponse
 import com.fincore.notifications.api.dto.PagedNotificationResponse
 import com.fincore.notifications.api.dto.UnreadCountResponse
 import com.fincore.notifications.application.NotificationService
 import com.fincore.notifications.domain.Notification
-import com.fincore.shared.error.ResourceNotFoundException
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.ResponseEntity
-import org.springframework.security.access.AccessDeniedException
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.oauth2.jwt.Jwt
@@ -27,8 +23,7 @@ import java.util.UUID
 @RequestMapping("/api/v1/notifications")
 @Tag(name = "Notifications", description = "Customer notification endpoints")
 class NotificationController(
-    private val notificationService: NotificationService,
-    private val userRepository: UserRepository
+    private val notificationService: NotificationService
 ) {
 
     @GetMapping
@@ -77,11 +72,8 @@ class NotificationController(
     }
 
     private fun extractCustomerId(jwt: Jwt): UUID {
-        val userId = UUID.fromString(jwt.subject)
-        val user = userRepository.findById(userId).orElseThrow {
-            AccessDeniedException("User not found")
-        }
-        return user.customerId ?: throw AccessDeniedException("User has no associated customer profile")
+        val customerIdStr = jwt.getClaimAsString("customerId") ?: jwt.subject
+        return UUID.fromString(customerIdStr)
     }
 
     private fun Notification.toResponse(): NotificationResponse = NotificationResponse(

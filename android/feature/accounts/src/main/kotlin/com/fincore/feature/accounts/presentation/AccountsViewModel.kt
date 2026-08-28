@@ -4,15 +4,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fincore.core.common.result.ErrorType
 import com.fincore.core.common.result.ScreenState
+import com.fincore.core.database.dao.SyncMetadataDao
+import com.fincore.core.network.monitor.NetworkMonitor
 import com.fincore.feature.accounts.domain.model.Account
 import com.fincore.feature.accounts.domain.usecase.CreateAccountUseCase
 import com.fincore.feature.accounts.domain.usecase.GetAccountsUseCase
 import com.fincore.feature.accounts.domain.usecase.RefreshAccountsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -20,11 +25,20 @@ import javax.inject.Inject
 class AccountsViewModel @Inject constructor(
     private val getAccountsUseCase: GetAccountsUseCase,
     private val refreshAccountsUseCase: RefreshAccountsUseCase,
-    private val createAccountUseCase: CreateAccountUseCase
+    private val createAccountUseCase: CreateAccountUseCase,
+    private val networkMonitor: NetworkMonitor,
+    private val syncMetadataDao: SyncMetadataDao
 ) : ViewModel() {
 
     private val _screenState = MutableStateFlow<ScreenState<List<Account>>>(ScreenState.Loading)
     val screenState: StateFlow<ScreenState<List<Account>>> = _screenState.asStateFlow()
+
+    val isOnline: StateFlow<Boolean> = networkMonitor.isOnline
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    val lastSyncedAt: StateFlow<Long?> = syncMetadataDao.observeSyncMetadata("FINANCIAL_DATA")
+        .map { it?.lastSyncedAt }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {
         observeAccounts()

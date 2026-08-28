@@ -34,6 +34,7 @@ fun TransferScreen(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsState()
+    val isOnline by viewModel.isOnline.collectAsState()
 
     Scaffold(
         topBar = {
@@ -51,6 +52,22 @@ fun TransferScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            if (!isOnline) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Connection required. Transfers cannot be executed or queued offline.",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+
             OutlinedTextField(
                 value = state.sourceAccountId,
                 onValueChange = { viewModel.onSourceAccountSelected(it) },
@@ -82,7 +99,7 @@ fun TransferScreen(
             Button(
                 onClick = { viewModel.submitTransfer() },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = state.transferState !is ScreenState.Loading
+                enabled = isOnline && state.transferState !is ScreenState.Loading
             ) {
                 Text("Confirm Transfer")
             }

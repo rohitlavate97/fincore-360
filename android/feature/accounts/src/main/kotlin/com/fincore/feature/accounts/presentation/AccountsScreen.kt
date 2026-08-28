@@ -38,6 +38,8 @@ fun AccountsScreen(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.screenState.collectAsState()
+    val isOnline by viewModel.isOnline.collectAsState()
+    val lastSyncedAt by viewModel.lastSyncedAt.collectAsState()
 
     Scaffold(
         topBar = {
@@ -54,22 +56,51 @@ fun AccountsScreen(
         },
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            ScreenStateContainer(
-                state = state,
-                onRetry = { viewModel.refresh() }
-            ) { accounts ->
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+            if (!isOnline) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    items(accounts, key = { it.id }) { account ->
-                        AccountCard(account = account)
+                    Text(
+                        text = "Offline Mode — Showing cached accounts",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+
+            if (lastSyncedAt != null) {
+                Text(
+                    text = "Last synced: ${java.time.Instant.ofEpochMilli(lastSyncedAt!!).toString().replace('T', ' ').take(16)} UTC",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
+
+            Box(modifier = Modifier.fillMaxSize().weight(1f)) {
+                ScreenStateContainer(
+                    state = state,
+                    onRetry = { viewModel.refresh() }
+                ) { accounts ->
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(accounts, key = { it.id }) { account ->
+                            AccountCard(account = account)
+                        }
                     }
                 }
             }
@@ -78,19 +109,26 @@ fun AccountsScreen(
 }
 
 @Composable
-fun AccountCard(account: Account, modifier: Modifier = Modifier) {
+fun AccountCard(
+    account: Account,
+    modifier: Modifier = Modifier
+) {
     Card(
         modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = account.accountType,
+                    text = account.accountNumber,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -99,17 +137,13 @@ fun AccountCard(account: Account, modifier: Modifier = Modifier) {
                     label = { Text(account.status) }
                 )
             }
-
             Spacer(modifier = Modifier.height(8.dp))
-
             Text(
-                text = account.accountNumber,
-                style = MaterialTheme.typography.bodyMedium,
+                text = "${account.accountType} Account",
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-
             Spacer(modifier = Modifier.height(12.dp))
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -122,7 +156,7 @@ fun AccountCard(account: Account, modifier: Modifier = Modifier) {
                     )
                     Text(
                         text = "${account.currency} ${account.availableBalance}",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -135,8 +169,7 @@ fun AccountCard(account: Account, modifier: Modifier = Modifier) {
                     )
                     Text(
                         text = "${account.currency} ${account.ledgerBalance}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }

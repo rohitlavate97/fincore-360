@@ -5,6 +5,9 @@ import com.fincore.accounts.domain.AccountStatus
 import com.fincore.accounts.infrastructure.AccountRepository
 import com.fincore.shared.audit.AuditLogRepository
 import com.fincore.shared.correlation.CorrelationIdFilter
+import com.fincore.shared.error.AccountNotActiveException
+import com.fincore.shared.error.ConflictException
+import com.fincore.shared.error.InsufficientFundsException
 import com.fincore.shared.error.ResourceNotFoundException
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.data.domain.PageRequest
@@ -83,6 +86,75 @@ class AccountService(
         return account.toView()
     }
 
+    @Transactional
+    fun executeTransferBalances(
+        sourceAccountId: UUID,
+        destinationAccountId: UUID,
+        amount: BigDecimal,
+        currency: String,
+        callerCustomerId: UUID?
+    ): TransferAccountsSummary {
+        require(sourceAccountId != destinationAccountId) { "Source and destination accounts must be distinct" }
+        require(amount > BigDecimal.ZERO) { "Transfer amount must be strictly positive" }
+
+        // 1. Lock accounts in deterministic order (by account ID ASC) — deadlock defence (DATABASE-DESIGN.md §3)
+        val lockedAccounts = accountRepository.findAllByIdInForUpdate(listOf(sourceAccountId, destinationAccountId))
+        if (lockedAccounts.size < 2) {
+            throw ResourceNotFoundException("One or both accounts not found")
+        }
+
+        val sourceAccount = lockedAccounts.first { it.id == sourceAccountId }
+        val destAccount = lockedAccounts.first { it.id == destinationAccountId }
+
+        // 2. Ownership check on source account (API-DESIGN.md §4: 404 on unowned to prevent enumeration)
+        if (callerCustomerId != null && sourceAccount.customerId != callerCustomerId) {
+            throw ResourceNotFoundException("Account not found")
+        }
+
+        // 3. Status checks
+        if (sourceAccount.status != AccountStatus.ACTIVE) {
+            throw AccountNotActiveException("Source account is not active (${sourceAccount.status})")
+        }
+        if (destAccount.status != AccountStatus.ACTIVE) {
+            throw AccountNotActiveException("Destination account is not active (${destAccount.status})")
+        }
+
+        // 4. Currency checks
+        if (!sourceAccount.currency.trim().equals(currency.trim(), ignoreCase = true) ||
+            !destAccount.currency.trim().equals(currency.trim(), ignoreCase = true)) {
+            throw ConflictException("Cross-currency transfers are not supported. Source: ${sourceAccount.currency}, Dest: ${destAccount.currency}, Request: $currency")
+        }
+
+        // 5. Balance check on AVAILABLE balance (DATABASE-DESIGN.md §2)
+        val normalizedAmount = amount.setScale(4, RoundingMode.UNNECESSARY)
+        if (sourceAccount.availableBalance < normalizedAmount) {
+            throw InsufficientFundsException(
+                "Insufficient funds: available balance ${sourceAccount.availableBalance} is less than requested amount $normalizedAmount"
+            )
+        }
+
+        // 6. Debit source and credit destination
+        sourceAccount.availableBalance = (sourceAccount.availableBalance - normalizedAmount).setScale(4, RoundingMode.UNNECESSARY)
+        sourceAccount.ledgerBalance = (sourceAccount.ledgerBalance - normalizedAmount).setScale(4, RoundingMode.UNNECESSARY)
+        sourceAccount.updatedAt = Instant.now()
+
+        destAccount.availableBalance = (destAccount.availableBalance + normalizedAmount).setScale(4, RoundingMode.UNNECESSARY)
+        destAccount.ledgerBalance = (destAccount.ledgerBalance + normalizedAmount).setScale(4, RoundingMode.UNNECESSARY)
+        destAccount.updatedAt = Instant.now()
+
+        accountRepository.save(sourceAccount)
+        accountRepository.save(destAccount)
+
+        return TransferAccountsSummary(
+            sourceAccountId = sourceAccount.id,
+            sourceCustomerId = sourceAccount.customerId,
+            destinationAccountId = destAccount.id,
+            destinationCustomerId = destAccount.customerId,
+            amount = normalizedAmount,
+            currency = currency.uppercase().trim(),
+            sourceRemainingBalance = sourceAccount.availableBalance.toPlainString()
+        )
+    }
     private fun generateUniqueAccountNumber(): String {
         var attempts = 0
         while (attempts < 10) {

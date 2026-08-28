@@ -32,3 +32,13 @@ data class PagedResult<T>(
     val totalPages: Int,
     val hasNext: Boolean
 )
+
+data class TransferAccountsSummary(
+    val sourceAccountId: UUID,
+    val sourceCustomerId: UUID,
+    val destinationAccountId: UUID,
+    val destinationCustomerId: UUID,
+    val amount: BigDecimal,
+    val currency: String,
+    val sourceRemainingBalance: String
+)

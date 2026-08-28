@@ -34,6 +34,21 @@ class SecurityConfig(
             .csrf { it.disable() }
             .cors { }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+            .headers { headers ->
+                headers
+                    .contentSecurityPolicy { it.policyDirectives("default-src 'self'; frame-ancestors 'none'") }
+                    .frameOptions { it.deny() }
+                    .httpStrictTransportSecurity {
+                        it.includeSubDomains(true)
+                        it.maxAgeInSeconds(31536000)
+                    }
+                    .referrerPolicy {
+                        it.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
+                    }
+                    .permissionsPolicy {
+                        it.policy("geolocation=(), camera=(), microphone=()")
+                    }
+            }
             .exceptionHandling {
                 it.authenticationEntryPoint(authenticationEntryPoint)
                 it.accessDeniedHandler(accessDeniedHandler)

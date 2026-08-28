@@ -65,11 +65,14 @@ dependencies {
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.activity.compose)
     implementation(libs.core.ktx)
+    implementation(libs.workmanager)
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 
     testImplementation(libs.junit.jupiter)
+    testImplementation(libs.mockk)
+    testImplementation(libs.coroutines.test)
     testRuntimeOnly(libs.junit.platform.launcher)
     testRuntimeOnly(libs.junit.jupiter.engine)
     testImplementation(libs.mockk)

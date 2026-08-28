@@ -18,10 +18,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navDeepLink
 import com.fincore.feature.accounts.presentation.AccountsScreen
 import com.fincore.feature.accounts.presentation.AccountsViewModel
 import com.fincore.feature.auth.presentation.LoginScreen
 import com.fincore.feature.auth.presentation.LoginViewModel
+import com.fincore.feature.notifications.presentation.NotificationsScreen
+import com.fincore.feature.notifications.presentation.NotificationsViewModel
+import com.fincore.feature.transactions.presentation.TransactionDetailScreen
 import com.fincore.feature.transfer.presentation.TransferScreen
 import com.fincore.feature.transfer.presentation.TransferViewModel
 
@@ -78,6 +82,28 @@ fun FinCoreNavGraph(
                 val viewModel: TransferViewModel = hiltViewModel()
                 TransferScreen(viewModel = viewModel)
             }
+            composable(Screen.Notifications.route) {
+                val viewModel: NotificationsViewModel = hiltViewModel()
+                NotificationsScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToTransaction = { transactionId ->
+                        navController.navigate("transactions/$transactionId")
+                    },
+                    viewModel = viewModel
+                )
+            }
+            composable(
+                route = Screen.TransactionDetail.route,
+                deepLinks = listOf(
+                    navDeepLink { uriPattern = "fincore://transactions/{transactionId}" }
+                )
+            ) { backStackEntry ->
+                val transactionId = backStackEntry.arguments?.getString("transactionId") ?: ""
+                TransactionDetailScreen(
+                    transactionId = transactionId,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
             composable(Screen.Profile.route) {
                 ProfileScreenPlaceholder(
                     onLogout = {
@@ -104,6 +130,9 @@ fun DashboardScreenPlaceholder(onNavigate: (String) -> Unit) {
             }
             Button(onClick = { onNavigate(Screen.Transfer.route) }) {
                 Text("Transfer Money")
+            }
+            Button(onClick = { onNavigate(Screen.Notifications.route) }) {
+                Text("View Notifications")
             }
             Button(onClick = { onNavigate(Screen.Profile.route) }) {
                 Text("Go to Profile")

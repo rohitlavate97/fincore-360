@@ -131,3 +131,47 @@ fun TransactionRowCard(item: TransactionItem, modifier: Modifier = Modifier) {
         }
     }
 }
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TransactionDetailScreen(
+    transactionId: String,
+    onNavigateBack: () -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Transaction Details", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    androidx.compose.material3.IconButton(onClick = onNavigateBack) {
+                        Text("←", style = MaterialTheme.typography.titleLarge)
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text("Transaction Reference", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
+                    Text(transactionId, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    androidx.compose.foundation.layout.Spacer(modifier = androidx.compose.ui.Modifier.padding(top = 12.dp))
+                    SuggestionChip(
+                        onClick = {},
+                        label = { Text("Verified Transaction") }
+                    )
+                }
+            }
+        }
+    }
+}

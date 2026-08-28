@@ -10,6 +10,9 @@ class ScreenTest {
         assertEquals("login", Screen.Login.route)
         assertEquals("dashboard", Screen.Dashboard.route)
         assertEquals("accounts", Screen.Accounts.route)
+        assertEquals("transfer", Screen.Transfer.route)
         assertEquals("profile", Screen.Profile.route)
+        assertEquals("notifications", Screen.Notifications.route)
+        assertEquals("transactions/{transactionId}", Screen.TransactionDetail.route)
     }
 }

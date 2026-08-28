@@ -55,6 +55,7 @@ dependencies {
     implementation(project(":feature:accounts"))
     implementation(project(":feature:transfer"))
     implementation(project(":feature:transactions"))
+    implementation(project(":feature:notifications"))
     testImplementation(project(":core:testing"))
 
     implementation(platform(libs.compose.bom))

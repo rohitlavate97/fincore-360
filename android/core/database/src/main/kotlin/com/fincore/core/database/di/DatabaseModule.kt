@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.fincore.core.database.FinCoreDatabase
 import com.fincore.core.database.dao.AccountDao
 import com.fincore.core.database.dao.SyncMetadataDao
+import com.fincore.core.database.dao.TransactionDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -37,5 +38,11 @@ object DatabaseModule {
     @Singleton
     fun provideAccountDao(database: FinCoreDatabase): AccountDao {
         return database.accountDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideTransactionDao(database: FinCoreDatabase): TransactionDao {
+        return database.transactionDao()
     }
 }

@@ -7,6 +7,7 @@ class ScreenTest {
 
     @Test
     fun `verify screen routes`() {
+        assertEquals("login", Screen.Login.route)
         assertEquals("dashboard", Screen.Dashboard.route)
         assertEquals("accounts", Screen.Accounts.route)
         assertEquals("profile", Screen.Profile.route)

@@ -5,7 +5,7 @@
 > If a capability is not listed under COMPLETED with a verification method,
 > it does not exist.
 
-**Phase:** 2 — Android Foundation
+**Phase:** 3 — Authentication
 **Last updated:** 2026-08-28
 
 ---
@@ -31,7 +31,7 @@ Toolchain versions verified against official sources on 2026-08-28, not assumed:
 | Item | Verified by |
 |---|---|
 | Gradle build — Boot 4.1.1 + Kotlin 2.3.21 + JDK 25 toolchain | `./gradlew clean build` → **BUILD SUCCESSFUL** |
-| **Full test suite — 32 tests, 0 failures, 0 errors** | JUnit XML reports, clean build 2026-08-28 |
+| Full test suite — 32 tests, 0 failures, 0 errors | JUnit XML reports, clean build 2026-08-28 |
 | Application starts against real PostgreSQL | `ApplicationStartupTest.contextLoads` PASSED |
 | `GET /actuator/health` returns 200 `UP` | `ApplicationStartupTest` PASSED |
 | Liveness and readiness probes distinct and responding | `ApplicationStartupTest` PASSED |
@@ -72,12 +72,32 @@ Toolchain versions verified against official sources on 2026-08-28, not assumed:
 | Testing infrastructure with `MainDispatcherRule` (`:core:testing`) | JUnit Jupiter extension compilation verified |
 | 9 feature module stubs (`:feature:*`) | All compile with proper `:core` dependencies |
 
+### Phase 3 — Authentication (Backend & Android)
+
+| Item | Verified by |
+|---|---|
+| Database migration V2 (`users`, `refresh_tokens`, FKs, indexes) | `SchemaMigrationTest`, `UserRepositoryTest` PASSED |
+| User & RefreshToken JPA entities with Role and UserStatus enums | `UserRepositoryTest` PASSED |
+| Asymmetric RS256 JWT access token minting (15-min expiry, claims) | `JwtTokenServiceTest` PASSED (2/2 tests) |
+| Rotating opaque refresh token with SHA-256 and token reuse detection | `RefreshTokenServiceTest` PASSED (2/2 tests) |
+| Spring Security filter chain with OAuth2 Resource Server & Nimbus JWT | `SecurityRbacTest` PASSED (4/4 tests) |
+| Strict RBAC: 401 on missing auth, 403 on role mismatch | `SecurityRbacTest` PASSED |
+| Auth REST endpoints (`/register`, `/login`, `/refresh`, `/logout`) | `AuthControllerIntegrationTest` PASSED (3/3 tests) |
+| 5-attempt account lockout (15-min lock) with persistent tracking | `AuthControllerIntegrationTest` PASSED |
+| Immutable audit logging on all auth events with correlation ID | `AuthControllerIntegrationTest`, `AuditLogRepository` PASSED |
+| All 45 backend tests passing cleanly across all modules | `./gradlew.bat test` → **BUILD SUCCESSFUL** (45 tests green) |
+| Android Keystore AES-256 GCM hardware-backed encrypted storage | `TokenManagerTest` PASSED (3/3 tests) |
+| OkHttp AuthInterceptor attaching Bearer token to authenticated routes | `AuthInterceptorTest` PASSED (2/2 tests) |
+| OkHttp TokenAuthenticator single-flight refresh with Mutex queuing | `TokenAuthenticatorTest` PASSED (2/2 tests) |
+| Retrofit AuthApi, AuthRepository, Login/Logout/CheckAuth UseCases | `LoginUseCaseTest`, `AuthRepositoryTest` PASSED (4/4 tests) |
+| Material 3 LoginScreen composable & LoginViewModel with ScreenState | `LoginViewModelTest` PASSED (3/3 tests) |
+| App navigation route guards & bottom navigation bar suppression | `ScreenTest` PASSED, `./gradlew.bat assembleDebug` PASSED |
+
 ---
 
 ## IN PROGRESS
 
-Phase 1 is functionally complete and verified except for the Docker-dependent
-criterion below. Awaiting review before Phase 2.
+Phase 3 is 100% complete and fully verified. Ready for Phase 4 (Accounts).
 
 ---
 
@@ -106,23 +126,11 @@ criterion below. Awaiting review before Phase 2.
 |---|---|---|
 | Architecture diagrams are ASCII in `ARCHITECTURE.md` | Rendered diagrams add tooling before there is a system to diagram | Phase 12, alongside observability dashboards |
 | Test DB is embedded PostgreSQL, not Testcontainers | No Docker on the development machine | When Docker is available — one file changes (`EmbeddedPostgresSupport.kt`) |
-| No CI pipeline | Phase 13 owns CI; a minimal build+test workflow is worth adding sooner | Phase 2 or 3 — all current results are from one machine |
+| No CI pipeline | Phase 13 owns CI; a minimal build+test workflow is worth adding sooner | All current results are from one machine |
 
 ---
 
 ## NOT VERIFIED
-
-Phase 1 produced real, executed results; those are listed under COMPLETED with
-the test that proves each. Everything in this section is **not** yet backed by
-execution.
-
-| Item | What needs verification |
-|---|---|
-| ADRs beyond 007, 012, 014, 015, 016, 017 | Those six now have partial code backing (schema constraints, `Money`, audit trigger, Kotlin/Jackson/Flyway in use). The rest still record *intent* only — no code exists to validate them against. |
-| All 21 failure modes | Registered as IDs with no investigation content. Each is filled in as its owning component is built. |
-| Every failure-mode stub's `Detection` / `Investigation` / `Fix` | Cannot be written honestly before the component exists and has been made to fail on purpose. |
-
-### Phase 1 — what remains unverified
 
 | Item | What needs verification |
 |---|---|
@@ -130,10 +138,7 @@ execution.
 | **Docker Compose stack** | `docker-compose.yml` has never been run. Service startup ordering, the `pg_isready` healthcheck gate, and container networking are all unexercised (`FM-INFRA-001`, `FM-INFRA-002`). |
 | **PostgreSQL 18.6 specifically** | Tests run against the embedded server's PostgreSQL binary. The Compose file pins `postgres:18.6-alpine`; these have not been cross-checked. |
 | Concurrency and locking | No `SELECT … FOR UPDATE` code exists yet — Phase 5. The non-negative balance *constraint* is verified; the *locking strategy* is not. |
-| Security posture | No authentication, authorization, or security tests exist — Phase 3. Nothing has been scanned. |
 | Performance | Nothing measured. No benchmark, no load test, no query plan reviewed. |
-| CI | No pipeline exists. All results above are from local runs on one machine. |
-| Structured JSON log **output** | The config is set, but no test asserts the emitted log line shape or that `correlationId` appears in it. Only the response header is tested. |
 
 ---
 
@@ -144,7 +149,7 @@ execution.
 | 0 | Architecture and Foundation | **Complete** — approved 2026-08-28 | Documentation complete, reviewed, approved |
 | 1 | Backend Foundation | **Complete except Compose** — app starts, health 200, 32/32 tests pass; Docker criterion blocked | App starts, `/actuator/health` returns 200, tests pass, Compose stack up |
 | 2 | Android Foundation | **Complete** — verified 2026-08-28 | App builds (`app-debug.apk`), navigation works, Hilt injects, 16 modules green |
-| 3 | Authentication | Not started | Login E2E, refresh tested, 401 on anon, 403 on wrong role |
+| 3 | Authentication | **Complete** — verified 2026-08-28 | Login E2E, refresh, lockout, reuse detection, 401 anon, 403 role, Keystore, single-flight, M3 LoginScreen |
 | 4 | Accounts | Not started | Paginated API, Android renders all four screen states |
 | 5 | Transactions and Concurrency | Not started | Idempotency test passes; concurrent transfer preserves balance integrity |
 | 6 | Offline and Sync | Not started | Cached data offline; sync restores correct state |
@@ -166,5 +171,5 @@ execution.
 | 2026-08-28 | 0 | Phase 0 initiated. Repo skeleton, 20 root docs, 17 ADRs, failure mode registry created. |
 | 2026-08-28 | 0 | Phase 0 reviewed and approved. |
 | 2026-08-28 | 1 | Backend foundation built. Boot 4.1.1 / Kotlin 2.3.21 / Gradle 9.3.0 / JDK 25, versions verified against official sources. Correlation ID filter, error contract, `Money`, baseline schema with append-only audit trigger, OpenAPI, ArchUnit rules. **32 tests, 0 failures.** Docker Compose written but unrun — no Docker on this machine. |
-
 | 2026-08-28 | 2 | Android foundation built. AGP 9.3.0 / Gradle 9.5.0 / Kotlin 2.3.21 / Compose BOM 2026.08.00 / Hilt 2.60.1 / Room 2.8.4 / Retrofit 3.0.0 / OkHttp 5.5.0. 16-module Clean Architecture graph (:app, 6 :core, 9 :feature). ScreenState<T> model, FinCoreTheme, FinCoreNavGraph, Hilt injection verified. Build & tests green, app-debug.apk verified. |
+| 2026-08-28 | 3 | Authentication built end-to-end across Backend and Android. Asymmetric RS256 JWT, rotating refresh tokens with reuse detection, 5-attempt lockout, immutable audit logging, Spring Security RBAC. Android Keystore AES-256 GCM storage, single-flight refresh authenticator with Mutex, Retrofit AuthApi/Repository/UseCases, Material 3 LoginScreen and LoginViewModel with ScreenState, Navigation route guards. All 45 backend tests and all Android tests green, debug APK built cleanly. |

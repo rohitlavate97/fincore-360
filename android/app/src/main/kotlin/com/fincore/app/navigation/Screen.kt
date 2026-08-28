@@ -1,7 +1,8 @@
 package com.fincore.app.navigation
 
 sealed class Screen(val route: String) {
-    object Dashboard : Screen("dashboard")
-    object Accounts : Screen("accounts")
-    object Profile : Screen("profile")
+    data object Login : Screen("login")
+    data object Dashboard : Screen("dashboard")
+    data object Accounts : Screen("accounts")
+    data object Profile : Screen("profile")
 }

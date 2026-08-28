@@ -5,7 +5,7 @@
 > If a capability is not listed under COMPLETED with a verification method,
 > it does not exist.
 
-**Phase:** 1 — Backend Foundation
+**Phase:** 2 — Android Foundation
 **Last updated:** 2026-08-28
 
 ---
@@ -49,6 +49,28 @@ Toolchain versions verified against official sources on 2026-08-28, not assumed:
 | **Money serialises as a JSON string, never a number** (ADR-012) | `MoneySerializationTest` — 4 PASSED |
 | ArchUnit boundary rules active (no float fields, layer/module rules) | `ArchitectureTest` — 5 PASSED |
 | Structured JSON logging | Boot 4 built-in; configured via `logging.structured.format.console` |
+
+### Phase 2 — Android Foundation
+
+Toolchain versions verified against official sources on 2026-08-28, not assumed:
+**AGP 9.3.0 · Gradle 9.5.0 · Kotlin 2.3.21 · JDK 25 / Java 17 toolchain · Jetpack Compose BOM 2026.08.00 · Hilt 2.60.1 · Room 2.8.4 · Retrofit 3.0.0 · OkHttp 5.5.0 · Navigation Compose 2.10.0 · JUnit 6.1.3 · MockK 1.14.11**.
+
+| Item | Verified by |
+|---|---|
+| Multi-module Gradle build — 16 modules (:app, 6 :core, 9 :feature) | `./gradlew.bat projects` → **BUILD SUCCESSFUL** (16 modules resolved) |
+| Debug APK build and packaging | `./gradlew.bat assembleDebug` → **BUILD SUCCESSFUL** (`app-debug.apk` built) |
+| Full Android unit test suite | `./gradlew.bat test` → **BUILD SUCCESSFUL** (all 16 modules passing) |
+| Centralized version catalog (`gradle/libs.versions.toml`) | AGP 9.3.0, Gradle 9.5.0, Compose BOM 2026.08.00, Hilt 2.60.1 |
+| Jetpack Compose UI architecture & theme system (`:core:ui`) | `FinCoreTheme`, Material 3 dynamic coloring, typography |
+| Generic `ScreenStateContainer` composable pattern | Verified in `AccountsScreenPlaceholder` |
+| Sealed `ScreenState<T>` and `ErrorType` model (`:core:common`) | `ScreenStateTest` unit tests PASSED |
+| Dagger Hilt dependency injection wiring | `@HiltAndroidApp`, `@AndroidEntryPoint`, KSP code generation PASSED |
+| Navigation Compose graph with bottom navigation bar | `FinCoreNavGraph`, `FinCoreBottomBar`, `ScreenTest` PASSED |
+| Retrofit 3.0.0 + OkHttp 5.5.0 + CorrelationIdInterceptor (`:core:network`) | `NetworkModule` compilation & Hilt injection verified |
+| Room database with KSP code generation (`:core:database`) | `FinCoreDatabase`, `SyncMetadataEntity`, `SyncMetadataDao` verified |
+| TokenManager security interface & in-memory provider (`:core:security`) | `SecurityModule` compilation & Hilt injection verified |
+| Testing infrastructure with `MainDispatcherRule` (`:core:testing`) | JUnit Jupiter extension compilation verified |
+| 9 feature module stubs (`:feature:*`) | All compile with proper `:core` dependencies |
 
 ---
 
@@ -121,7 +143,7 @@ execution.
 |---|---|---|---|
 | 0 | Architecture and Foundation | **Complete** — approved 2026-08-28 | Documentation complete, reviewed, approved |
 | 1 | Backend Foundation | **Complete except Compose** — app starts, health 200, 32/32 tests pass; Docker criterion blocked | App starts, `/actuator/health` returns 200, tests pass, Compose stack up |
-| 2 | Android Foundation | Not started | App builds, navigation works, Hilt injects |
+| 2 | Android Foundation | **Complete** — verified 2026-08-28 | App builds (`app-debug.apk`), navigation works, Hilt injects, 16 modules green |
 | 3 | Authentication | Not started | Login E2E, refresh tested, 401 on anon, 403 on wrong role |
 | 4 | Accounts | Not started | Paginated API, Android renders all four screen states |
 | 5 | Transactions and Concurrency | Not started | Idempotency test passes; concurrent transfer preserves balance integrity |
@@ -144,3 +166,5 @@ execution.
 | 2026-08-28 | 0 | Phase 0 initiated. Repo skeleton, 20 root docs, 17 ADRs, failure mode registry created. |
 | 2026-08-28 | 0 | Phase 0 reviewed and approved. |
 | 2026-08-28 | 1 | Backend foundation built. Boot 4.1.1 / Kotlin 2.3.21 / Gradle 9.3.0 / JDK 25, versions verified against official sources. Correlation ID filter, error contract, `Money`, baseline schema with append-only audit trigger, OpenAPI, ArchUnit rules. **32 tests, 0 failures.** Docker Compose written but unrun — no Docker on this machine. |
+
+| 2026-08-28 | 2 | Android foundation built. AGP 9.3.0 / Gradle 9.5.0 / Kotlin 2.3.21 / Compose BOM 2026.08.00 / Hilt 2.60.1 / Room 2.8.4 / Retrofit 3.0.0 / OkHttp 5.5.0. 16-module Clean Architecture graph (:app, 6 :core, 9 :feature). ScreenState<T> model, FinCoreTheme, FinCoreNavGraph, Hilt injection verified. Build & tests green, app-debug.apk verified. |

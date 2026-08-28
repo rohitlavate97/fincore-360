@@ -5,7 +5,7 @@
 > If a capability is not listed under COMPLETED with a verification method,
 > it does not exist.
 
-**Phase:** 8 — Notifications
+**Phase:** 9 — Web Portal
 **Last updated:** 2026-08-29
 
 ---
@@ -137,7 +137,7 @@ Toolchain versions verified against official sources on 2026-08-28, not assumed:
 | DefaultSyncManager with server-wins conflict resolution & 30s throttle | `DefaultSyncManagerTest` PASSED (3/3 tests) |
 | WorkManager SyncWorker (Hilt entry point) & SyncWorkScheduler | `SyncWorkerTest` PASSED, `assembleDebug` PASSED |
 | Material 3 AccountsScreen displaying offline mode banner and last-synced timestamp | `AccountsViewModelTest` PASSED |
-| Material 3 TransferScreen & ViewModel enforcing ONLINE_ONLY transfer blocking | `TransferViewModelTest` PASSED |
+| Material 3 TransferScreen & ViewModel enforcing ONLINE_ONLY classification | `TransferViewModelTest` PASSED |
 | **Exit Criterion 1**: Cached data renders offline from Room SSOT with timestamp | `OfflineSyncIntegrationTest` PASSED |
 | **Exit Criterion 2**: Sync restores correct state when connectivity restored | `OfflineSyncIntegrationTest` PASSED |
 | Full test suite passing across all 16 Android modules and debug APK | `./gradlew.bat test` & `assembleDebug` → **BUILD SUCCESSFUL** |
@@ -174,11 +174,29 @@ Toolchain versions verified against official sources on 2026-08-28, not assumed:
 | Full backend test suite passing cleanly across all modules | `./gradlew.bat test` → **BUILD SUCCESSFUL** (88 tests green) |
 | Full Android test suite passing across all 16 modules and debug APK | `./gradlew.bat test` & `assembleDebug` → **BUILD SUCCESSFUL** |
 
+### Phase 9 — Web Portal (React + TypeScript)
+
+| Item | Verified by |
+|---|---|
+| React 19 + TypeScript + Vite portal architecture in `web/` | `npm run build` (production bundle verified) |
+| ApiClient with automatic X-Correlation-ID injection and Bearer token attachment | `apiClient.test.ts` PASSED (3/3 tests) |
+| Spring Security CorsConfigurationSource configuring allowed web origins and headers | `SecurityConfig.kt` compilation & testing verified |
+| Token-based AuthContext with session storage and role simulation | `AuthContext.tsx`, `ProtectedRoute.test.tsx` PASSED |
+| ProtectedRoute and AccessDenied 403 screen enforcing zero-trust role boundaries | `ProtectedRoute.test.tsx` PASSED (3/3 tests) |
+| PortalLayout with dynamic sidebar navigation filtered strictly per active role | `PortalLayout.test.tsx` PASSED (3/3 tests) |
+| Operations Dashboard displaying health, precision guarantees, and role modules | `DashboardPage.tsx`, `PortalLayout.test.tsx` PASSED |
+| AccountsPage, TransferPage, TransactionsPage, and AuditPage domain views | `DomainPages.test.tsx` PASSED (3/3 tests) |
+| **Exit Criterion (Client-Side)**: Each role sees only permitted screens; unpermitted access renders 403 Access Denied | `RolePermissionMatrix.test.tsx` PASSED (4/4 tests) |
+| **Exit Criterion (Server-Side)**: Non-admin roles calling audit endpoint rejected with 403 ACCESS_DENIED | `AuditControllerIntegrationTest` PASSED |
+| Full Web test suite passing cleanly across all suites | `npm run test` → **16/16 tests green** |
+| Production bundle successfully built | `npm run build` → **0 errors, 1612 modules transformed** |
+| Full backend test suite passing cleanly across all modules | `./gradlew.bat test` → **BUILD SUCCESSFUL** (88 tests green) |
+
 ---
 
 ## IN PROGRESS
 
-Phase 8 is 100% complete and fully verified. Ready for Phase 9 (Web Portal).
+Phase 9 is 100% complete and fully verified. Ready for Phase 10 (Security Hardening).
 
 ---
 
@@ -235,7 +253,7 @@ Phase 8 is 100% complete and fully verified. Ready for Phase 9 (Web Portal).
 | 6 | Offline and Sync | **Complete** — verified 2026-08-28 | Cached data offline; sync restores correct state |
 | 7 | Audit and Events | **Complete** — verified 2026-08-28 | Transfer audit trail complete initiation → completion |
 | 8 | Notifications | **Complete** — verified 2026-08-29 | Notification received, tap deep-links to correct transaction |
-| 9 | Web Portal | Not started | Each role sees only permitted screens; API 403 on violation |
+| 9 | Web Portal | **Complete** — verified 2026-08-29 | Each role sees only permitted screens; API 403 on violation |
 | 10 | Security Hardening | Not started | OWASP checklist confirmed or risk-accepted in writing |
 | 11 | Comprehensive Testing | Not started | CI green across all test categories |
 | 12 | Observability | Not started | "How many transfers failed in the last hour?" answerable from a dashboard |
@@ -258,3 +276,4 @@ Phase 8 is 100% complete and fully verified. Ready for Phase 9 (Web Portal).
 | 2026-08-28 | 6 | Offline and Sync built end-to-end across Android architecture. Room PendingMutationEntity, PendingMutationDao, and database version 4 in :core:database. NetworkMonitor and ConnectivityManagerNetworkMonitor registering NetworkCallback with NET_CAPABILITY_INTERNET in :core:network. SyncManager interface and SyncStatus enum in :core:common. DefaultSyncManager orchestrating Accounts & Transactions sync, ADR-011 server-wins conflict resolution, and 30-second foreground throttle. WorkManager SyncWorker (Hilt entry point) and SyncWorkScheduler with CONNECTED constraints and exponential backoff, initialized in FinCoreApplication. Material 3 AccountsScreen with offline warning banner and last-synced timestamp (ADR-011 staleness requirement). Material 3 TransferScreen and TransferViewModel enforcing ONLINE_ONLY classification (blocking offline transfers without fake success, never queued in WorkManager). All 16 Android modules green and debug APK assembled. |
 | 2026-08-28 | 7 | Audit and Events built end-to-end across Backend architecture. Flyway migration V3 creating outbox_events table with JSONB payload and partial index on PENDING status. OutboxEvent JPA entity, OutboxStatus enum (PENDING, PUBLISHED, FAILED), and OutboxEventRepository. DomainEvent envelope per ADR-009 with SpringDomainEventPublisher decoupled from domain logic. OutboxService orchestrating atomic in-transaction event recording and asynchronous relay to publishers with retry and failure handling. TransferService enhanced with complete audit trail (TRANSFER_INITIATED and TRANSFER_COMPLETED with matching correlationId, actorId, and IP address) and transactional outbox persistence, eliminating dual-write loss. AuditLogRepository enhanced with findEvents and countEvents query methods with multi-criteria filtering and pagination. AuditController exposing GET /api/v1/audit/events restricted to ROLE_ADMIN. SecurityConfig updated for explicit resource authentication matchers. Full verification via TransferAuditTrailIntegrationTest and AuditControllerIntegrationTest. All 81 backend tests passing cleanly. |
 | 2026-08-29 | 8 | Notifications built end-to-end across Backend and Android. Flyway migration V4 creating notifications table with deep_link_uri and customer index. Notification JPA entity, NotificationRepository with unread counting and customer-scoped pagination. NotificationService and TransactionEventListener consuming TRANSFER_COMPLETED domain events and asynchronously creating notifications with deep links (fincore://transactions/{id}) for sender and recipient. NotificationController with GET, PATCH read, and unread-count endpoints enforcing customer isolation. TransferNotificationFlowIntegrationTest verifying transfer execution generates notifications with deep links. Room NotificationEntity, NotificationDao, and FinCoreDatabase version 5. FinCoreNotificationManager with fincore_transactions notification channel and PendingIntent deep links. Retrofit NotificationApi, NotificationRepositoryImpl, and Domain UseCases in :feature:notifications. Material 3 NotificationsScreen and NotificationsViewModel. AndroidManifest.xml deep link intent filter and Navigation Compose deep link routing fincore://transactions/{transactionId} to TransactionDetailScreen. NotificationsViewModelTest verifying notification tap marks read and deep-links to transaction. All 88 backend tests and all 16 Android modules passing cleanly, debug APK assembled. |
+| 2026-08-29 | 9 | Web Portal built end-to-end with React 19, TypeScript, and Vite. ApiClient with automatic X-Correlation-ID propagation, Bearer token injection, and typed ApiError handling. Spring Security CorsConfigurationSource allowing web origins with banking headers. In-memory AuthContext with session storage and role simulation for all 5 enterprise personas (CUSTOMER, SUPPORT_AGENT, OPERATIONS, AUDITOR, ADMIN). ProtectedRoute and AccessDenied 403 component enforcing zero-trust role guards. PortalLayout with dynamic sidebar navigation filtered per role. Operations Dashboard displaying platform health, NUMERIC(19,4) guarantees, and role module shortcuts. AccountsPage, TransferPage with Idempotency-Key header, TransactionsPage payment lifecycle inspector, and AuditPage regulatory log explorer. RolePermissionMatrix test suite verifying each role sees only permitted screens and receives 403 on violation. Backend AuditControllerIntegrationTest verifying non-admin roles receive 403 ACCESS_DENIED. All 16 Vitest tests green and production bundle compiled. |

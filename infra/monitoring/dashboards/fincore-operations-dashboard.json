@@ -1,0 +1,201 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Failed Transfers in Last Hour (Exit Criterion)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 10 }
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "orientation": "auto",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "sum(increase(fincore_transfers_failed_total[1h])) or vector(0)",
+          "legendFormat": "Total Failures (1h)",
+          "range": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Failed Transfers by Reason (Last 1h)",
+      "type": "piechart",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "values": ["value"] },
+        "pieType": "pie",
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "editorMode": "code",
+          "expr": "sum by (reason) (increase(fincore_transfers_failed_total[1h]))",
+          "legendFormat": "{{reason}}",
+          "range": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Transfer Execution Success Rate (5m)",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 95 },
+              { "color": "green", "value": 99 }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "(sum(rate(fincore_transfers_completed_total[5m])) / (sum(rate(fincore_transfers_initiated_total[5m])) > 0)) * 100 or vector(100)",
+          "legendFormat": "Success Rate %",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "HikariCP Database Pool Utilization",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 70 },
+              { "color": "red", "value": 85 }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "(hikaricp_connections_active / hikaricp_connections_max) * 100 or vector(0)",
+          "legendFormat": "Pool Usage %",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Transfer Volume Throughput (Initiated vs Completed vs Failed)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(fincore_transfers_initiated_total[1m]))",
+          "legendFormat": "Initiated / sec",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(fincore_transfers_completed_total[1m]))",
+          "legendFormat": "Completed / sec",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(fincore_transfers_failed_total[1m]))",
+          "legendFormat": "Failed / sec",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Transfer Execution Latency (P50, P95, P99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.50, sum(rate(fincore_transfer_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "P50 Latency",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum(rate(fincore_transfer_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "P95 Latency",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.99, sum(rate(fincore_transfer_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "P99 Latency",
+          "refId": "C"
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["fincore", "banking", "operations", "observability"],
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
+  },
+  "timezone": "utc",
+  "title": "FinCore 360 - Banking Operations & Observability",
+  "uid": "fincore-banking-operations",
+  "version": 1
+}

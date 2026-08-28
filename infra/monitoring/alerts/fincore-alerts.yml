@@ -1,0 +1,57 @@
+groups:
+  - name: fincore_banking_alerts
+    rules:
+      - alert: TransferFailureRateHigh
+        expr: sum(rate(fincore_transfers_failed_total[5m])) / (sum(rate(fincore_transfers_initiated_total[5m])) > 0) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          tier: core-banking
+        annotations:
+          summary: "High transfer failure rate detected (> 5% in last 5m)"
+          description: "Transfer failure rate is {{ $value | humanizePercentage }}. Investigate downstream banking core or balance deadlocks."
+          runbook_url: "docs/TROUBLESHOOTING.md#high-transfer-failure-rate"
+
+      - alert: DeadLetterOutboxEventsDetected
+        expr: sum(fincore_outbox_events_failed_total) > 0
+        for: 1m
+        labels:
+          severity: critical
+          tier: messaging
+        annotations:
+          summary: "Financial domain events dropped into dead-letter FAILED status"
+          description: "Outbox relay worker exhausted max retries without downstream confirmation. Data loss risk."
+          runbook_url: "docs/TROUBLESHOOTING.md#outbox-dead-letter"
+
+      - alert: TransferP99LatencyHigh
+        expr: histogram_quantile(0.99, sum(rate(fincore_transfer_duration_seconds_bucket[5m])) by (le)) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          tier: core-banking
+        annotations:
+          summary: "P99 transfer execution latency degraded (> 2s)"
+          description: "P99 latency has reached {{ $value }}s over a 5m sliding window."
+          runbook_url: "docs/TROUBLESHOOTING.md#p99-latency"
+
+      - alert: ConnectionPoolNearExhaustion
+        expr: hikaricp_connections_active / hikaricp_connections_max > 0.85
+        for: 2m
+        labels:
+          severity: critical
+          tier: database
+        annotations:
+          summary: "HikariCP database connection pool near exhaustion (> 85%)"
+          description: "FM-BACKEND-001 hazard: active pool usage is {{ $value | humanizePercentage }}."
+          runbook_url: "docs/TROUBLESHOOTING.md#connection-pool-exhaustion"
+
+      - alert: RateLimitSpikeDetected
+        expr: sum(rate(fincore_rate_limit_exceeded_total[5m])) > 10
+        for: 2m
+        labels:
+          severity: warning
+          tier: security
+        annotations:
+          summary: "Brute-force attack or client throttling saturation detected"
+          description: "Rate limiter 429 rejections spiking at {{ $value }} events/sec."
+          runbook_url: "docs/TROUBLESHOOTING.md#rate-limit-saturation"

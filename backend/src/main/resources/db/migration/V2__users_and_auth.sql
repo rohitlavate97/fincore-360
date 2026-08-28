@@ -22,3 +22,8 @@ CREATE INDEX idx_users_customer ON users (customer_id);
 
 ALTER TABLE refresh_tokens
     ADD CONSTRAINT fk_refresh_tokens_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+
+ALTER TABLE refresh_tokens
+    ADD COLUMN previous_token_hash VARCHAR(255);
+
+CREATE INDEX idx_refresh_tokens_prev_hash ON refresh_tokens (previous_token_hash);

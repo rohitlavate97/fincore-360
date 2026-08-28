@@ -22,6 +22,9 @@ class RefreshToken(
     @Column(name = "token_hash", nullable = false, length = 255)
     var tokenHash: String,
 
+    @Column(name = "previous_token_hash", length = 255)
+    var previousTokenHash: String? = null,
+
     @Column(name = "expires_at", nullable = false)
     var expiresAt: Instant,
 

@@ -13,6 +13,7 @@ import java.util.UUID
 interface RefreshTokenRepository : JpaRepository<RefreshToken, UUID> {
     fun findByUserIdAndDeviceId(userId: UUID, deviceId: String): Optional<RefreshToken>
     fun findByTokenHash(tokenHash: String): Optional<RefreshToken>
+    fun findByPreviousTokenHash(previousTokenHash: String): Optional<RefreshToken>
 
     @Modifying
     @Query("UPDATE RefreshToken r SET r.revokedAt = :now WHERE r.userId = :userId AND r.deviceId = :deviceId")

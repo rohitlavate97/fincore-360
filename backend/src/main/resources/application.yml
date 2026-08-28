@@ -52,6 +52,10 @@ management:
       show-details: never
       probes:
         enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
   health:
     livenessstate:
       enabled: true

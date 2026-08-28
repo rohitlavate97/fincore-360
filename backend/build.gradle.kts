@@ -56,6 +56,7 @@ dependencies {    // ── Security & Authentication (Phase 3) ─────�
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-micrometer-metrics")
     implementation("io.micrometer:micrometer-registry-prometheus")
 
     // ── Persistence ──────────────────────────────────────────────────────

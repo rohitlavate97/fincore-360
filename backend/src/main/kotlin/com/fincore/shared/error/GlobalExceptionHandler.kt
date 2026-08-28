@@ -61,6 +61,20 @@ class GlobalExceptionHandler {
             HttpStatus.NOT_FOUND,
             ErrorCode.RESOURCE_NOT_FOUND,
             "The requested resource was not found",
+        )    @ExceptionHandler(org.springframework.security.access.AccessDeniedException::class)
+    fun handleAccessDenied(ex: org.springframework.security.access.AccessDeniedException): ResponseEntity<ErrorResponse> =
+        respond(
+            HttpStatus.FORBIDDEN,
+            ErrorCode.ACCESS_DENIED,
+            "Access is denied",
+        )
+
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException::class)
+    fun handleAuthException(ex: org.springframework.security.core.AuthenticationException): ResponseEntity<ErrorResponse> =
+        respond(
+            HttpStatus.UNAUTHORIZED,
+            ErrorCode.AUTHENTICATION_REQUIRED,
+            ex.message ?: "Authentication required",
         )
 
     /**

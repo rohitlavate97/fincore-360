@@ -8,6 +8,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.security.oauth2.jwt.JwtDecoder
 import org.springframework.security.web.SecurityFilterChain
 
 @Configuration
@@ -15,11 +16,17 @@ import org.springframework.security.web.SecurityFilterChain
 @EnableMethodSecurity(prePostEnabled = true)
 class SecurityConfig(
     private val authenticationEntryPoint: CustomAuthenticationEntryPoint,
-    private val accessDeniedHandler: CustomAccessDeniedHandler
+    private val accessDeniedHandler: CustomAccessDeniedHandler,
+    private val jwtDecoder: JwtDecoder
 ) {
 
     @Bean
     fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
+
+    @Bean
+    fun jwtAuthenticationConverter(): CustomJwtAuthenticationConverter {
+        return CustomJwtAuthenticationConverter()
+    }
 
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
@@ -46,6 +53,14 @@ class SecurityConfig(
                     "/api/v1/transactions/**"
                 ).authenticated()
                 it.anyRequest().permitAll()
+            }
+            .oauth2ResourceServer { oauth2 ->
+                oauth2.jwt { jwt ->
+                    jwt.decoder(jwtDecoder)
+                    jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())
+                }
+                oauth2.authenticationEntryPoint(authenticationEntryPoint)
+                oauth2.accessDeniedHandler(accessDeniedHandler)
             }
 
         return http.build()

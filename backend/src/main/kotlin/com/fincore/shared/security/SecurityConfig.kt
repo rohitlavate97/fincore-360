@@ -52,7 +52,8 @@ class SecurityConfig(
                     "/api/v1/accounts/**",
                     "/api/v1/transfers/**",
                     "/api/v1/transactions/**",
-                    "/api/v1/audit/**"
+                    "/api/v1/audit/**",
+                    "/api/v1/notifications/**"
                 ).authenticated()
                 it.anyRequest().permitAll()
             }

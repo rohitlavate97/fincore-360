@@ -5,7 +5,7 @@
 > If a capability is not listed under COMPLETED with a verification method,
 > it does not exist.
 
-**Phase:** 3 — Authentication
+**Phase:** 4 — Accounts
 **Last updated:** 2026-08-28
 
 ---
@@ -62,7 +62,7 @@ Toolchain versions verified against official sources on 2026-08-28, not assumed:
 | Full Android unit test suite | `./gradlew.bat test` → **BUILD SUCCESSFUL** (all 16 modules passing) |
 | Centralized version catalog (`gradle/libs.versions.toml`) | AGP 9.3.0, Gradle 9.5.0, Compose BOM 2026.08.00, Hilt 2.60.1 |
 | Jetpack Compose UI architecture & theme system (`:core:ui`) | `FinCoreTheme`, Material 3 dynamic coloring, typography |
-| Generic `ScreenStateContainer` composable pattern | Verified in `AccountsScreenPlaceholder` |
+| Generic `ScreenStateContainer` composable pattern | Verified in `AccountsScreen` |
 | Sealed `ScreenState<T>` and `ErrorType` model (`:core:common`) | `ScreenStateTest` unit tests PASSED |
 | Dagger Hilt dependency injection wiring | `@HiltAndroidApp`, `@AndroidEntryPoint`, KSP code generation PASSED |
 | Navigation Compose graph with bottom navigation bar | `FinCoreNavGraph`, `FinCoreBottomBar`, `ScreenTest` PASSED |
@@ -85,7 +85,6 @@ Toolchain versions verified against official sources on 2026-08-28, not assumed:
 | Auth REST endpoints (`/register`, `/login`, `/refresh`, `/logout`) | `AuthControllerIntegrationTest` PASSED (3/3 tests) |
 | 5-attempt account lockout (15-min lock) with persistent tracking | `AuthControllerIntegrationTest` PASSED |
 | Immutable audit logging on all auth events with correlation ID | `AuthControllerIntegrationTest`, `AuditLogRepository` PASSED |
-| All 45 backend tests passing cleanly across all modules | `./gradlew.bat test` → **BUILD SUCCESSFUL** (45 tests green) |
 | Android Keystore AES-256 GCM hardware-backed encrypted storage | `TokenManagerTest` PASSED (3/3 tests) |
 | OkHttp AuthInterceptor attaching Bearer token to authenticated routes | `AuthInterceptorTest` PASSED (2/2 tests) |
 | OkHttp TokenAuthenticator single-flight refresh with Mutex queuing | `TokenAuthenticatorTest` PASSED (2/2 tests) |
@@ -93,11 +92,26 @@ Toolchain versions verified against official sources on 2026-08-28, not assumed:
 | Material 3 LoginScreen composable & LoginViewModel with ScreenState | `LoginViewModelTest` PASSED (3/3 tests) |
 | App navigation route guards & bottom navigation bar suppression | `ScreenTest` PASSED, `./gradlew.bat assembleDebug` PASSED |
 
+### Phase 4 — Accounts (Backend & Android)
+
+| Item | Verified by |
+|---|---|
+| Account JPA entity with NUMERIC(19,4) balances & @JdbcTypeCode(Types.CHAR) | `AccountRepositoryTest` PASSED |
+| AccountRepository with pagination and customer-scoped lookup | `AccountRepositoryTest` PASSED (2/2 tests) |
+| AccountService with unique number generation & scale-4 money strings | `AccountServiceTest` PASSED (3/3 tests) |
+| AccountController: GET /api/v1/accounts (paginated), POST, GET /{id} | `AccountControllerIntegrationTest` PASSED (3/3 tests) |
+| Strict ownership check returning 404 on unowned accounts (no oracle) | `AccountControllerIntegrationTest` PASSED |
+| All 53 backend tests passing cleanly across all modules | `./gradlew.bat test` → **BUILD SUCCESSFUL** (53 tests green) |
+| Room AccountEntity, AccountDao, and DB version 2 in :core:database | `:core:database:test` PASSED |
+| Retrofit AccountApi, AccountRepositoryImpl (Room SSOT), and UseCases | `AccountRepositoryTest`, `GetAccountsUseCaseTest` PASSED (3/3 tests) |
+| Material 3 AccountsScreen and AccountsViewModel with all 4 ScreenStates | `AccountsViewModelTest` PASSED (4/4 tests) |
+| Navigation Compose integration in :app with real AccountsScreen | `./gradlew.bat test` and `assembleDebug` → **BUILD SUCCESSFUL** |
+
 ---
 
 ## IN PROGRESS
 
-Phase 3 is 100% complete and fully verified. Ready for Phase 4 (Accounts).
+Phase 4 is 100% complete and fully verified. Ready for Phase 5 (Transactions and Concurrency).
 
 ---
 
@@ -150,7 +164,7 @@ Phase 3 is 100% complete and fully verified. Ready for Phase 4 (Accounts).
 | 1 | Backend Foundation | **Complete except Compose** — app starts, health 200, 32/32 tests pass; Docker criterion blocked | App starts, `/actuator/health` returns 200, tests pass, Compose stack up |
 | 2 | Android Foundation | **Complete** — verified 2026-08-28 | App builds (`app-debug.apk`), navigation works, Hilt injects, 16 modules green |
 | 3 | Authentication | **Complete** — verified 2026-08-28 | Login E2E, refresh, lockout, reuse detection, 401 anon, 403 role, Keystore, single-flight, M3 LoginScreen |
-| 4 | Accounts | Not started | Paginated API, Android renders all four screen states |
+| 4 | Accounts | **Complete** — verified 2026-08-28 | Paginated API, Android renders all four screen states, Room SSOT, 53 backend tests green |
 | 5 | Transactions and Concurrency | Not started | Idempotency test passes; concurrent transfer preserves balance integrity |
 | 6 | Offline and Sync | Not started | Cached data offline; sync restores correct state |
 | 7 | Audit and Events | Not started | Transfer audit trail complete initiation → completion |
@@ -173,3 +187,4 @@ Phase 3 is 100% complete and fully verified. Ready for Phase 4 (Accounts).
 | 2026-08-28 | 1 | Backend foundation built. Boot 4.1.1 / Kotlin 2.3.21 / Gradle 9.3.0 / JDK 25, versions verified against official sources. Correlation ID filter, error contract, `Money`, baseline schema with append-only audit trigger, OpenAPI, ArchUnit rules. **32 tests, 0 failures.** Docker Compose written but unrun — no Docker on this machine. |
 | 2026-08-28 | 2 | Android foundation built. AGP 9.3.0 / Gradle 9.5.0 / Kotlin 2.3.21 / Compose BOM 2026.08.00 / Hilt 2.60.1 / Room 2.8.4 / Retrofit 3.0.0 / OkHttp 5.5.0. 16-module Clean Architecture graph (:app, 6 :core, 9 :feature). ScreenState<T> model, FinCoreTheme, FinCoreNavGraph, Hilt injection verified. Build & tests green, app-debug.apk verified. |
 | 2026-08-28 | 3 | Authentication built end-to-end across Backend and Android. Asymmetric RS256 JWT, rotating refresh tokens with reuse detection, 5-attempt lockout, immutable audit logging, Spring Security RBAC. Android Keystore AES-256 GCM storage, single-flight refresh authenticator with Mutex, Retrofit AuthApi/Repository/UseCases, Material 3 LoginScreen and LoginViewModel with ScreenState, Navigation route guards. All 45 backend tests and all Android tests green, debug APK built cleanly. |
+| 2026-08-28 | 4 | Accounts built end-to-end across Backend and Android. Account JPA entity with NUMERIC(19,4) balances and bpchar currency type code, AccountRepository with pagination and customer-scoped queries, AccountService with unique account number generation, AccountController (paginated GET, POST, GET /{id} with 404 enumeration prevention), Room AccountEntity and AccountDao in :core:database, Retrofit AccountApi and repository with Room SSOT in :feature:accounts, Material 3 AccountsScreen and AccountsViewModel rendering all 4 ScreenStates (Loading, Success, Empty, Error), FinCoreNavGraph integration. All 53 backend tests and Android tests green, debug APK built cleanly. |

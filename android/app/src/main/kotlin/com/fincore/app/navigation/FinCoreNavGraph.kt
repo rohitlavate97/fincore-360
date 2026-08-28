@@ -16,8 +16,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.fincore.core.common.result.ScreenState
-import com.fincore.core.ui.component.ScreenStateContainer
+import com.fincore.feature.accounts.presentation.AccountsScreen
+import com.fincore.feature.accounts.presentation.AccountsViewModel
 import com.fincore.feature.auth.presentation.LoginScreen
 import com.fincore.feature.auth.presentation.LoginViewModel
 
@@ -67,7 +67,8 @@ fun FinCoreNavGraph(
                 DashboardScreenPlaceholder(onNavigate = { route -> navController.navigate(route) })
             }
             composable(Screen.Accounts.route) {
-                AccountsScreenPlaceholder()
+                val viewModel: AccountsViewModel = hiltViewModel()
+                AccountsScreen(viewModel = viewModel)
             }
             composable(Screen.Profile.route) {
                 ProfileScreenPlaceholder(
@@ -93,18 +94,6 @@ fun DashboardScreenPlaceholder(onNavigate: (String) -> Unit) {
             Button(onClick = { onNavigate(Screen.Profile.route) }) {
                 Text("Go to Profile")
             }
-        }
-    }
-}
-
-@Composable
-fun AccountsScreenPlaceholder() {
-    ScreenStateContainer(
-        state = ScreenState.Success("Data loaded"),
-        onRetry = {}
-    ) { data ->
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Accounts Screen: $data")
         }
     }
 }

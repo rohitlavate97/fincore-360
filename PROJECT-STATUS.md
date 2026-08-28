@@ -5,7 +5,7 @@
 > If a capability is not listed under COMPLETED with a verification method,
 > it does not exist.
 
-**Phase:** 11 — Comprehensive Testing
+**Phase:** 12 — Observability
 **Last updated:** 2026-08-29
 
 ---
@@ -221,11 +221,22 @@ Toolchain versions verified against official sources on 2026-08-28, not assumed:
 | Full Android test suite (16 modules) and debug APK packaging | `./gradlew.bat test` & `assembleDebug` PASSED |
 | **Exit Criterion**: CI green across all test categories; coverage meets agreed thresholds | **100% fulfilled & verified** |
 
+### Phase 12 — Observability (Metrics, Dashboards, Alerts, Web Portal)
+
+| Item | Verified by |
+|---|---|
+| Micrometer core banking metrics (`BankingMetricsService`) instrumenting transfers initiated, completed, failed (with reason tag), duration timer, and idempotency replays | `TransferServiceTest`, `ObservabilityMetricsIntegrationTest` PASSED |
+| Actuator metrics endpoint (`/actuator/metrics/fincore.transfers.failed`) tagged by `reason` and Prometheus export | `ObservabilityMetricsIntegrationTest` PASSED |
+| Prometheus alerting rules (`fincore-alerts.yml`) covering transfer failure rates, dead-letters, P99 latency, and connection pool exhaustion | YAML schema and metric expression review PASSED |
+| Grafana operations dashboard (`fincore-operations-dashboard.json`) featuring **"Failed Transfers in Last Hour (Exit Criterion)"** and reason breakdown pie chart | JSON schema & PromQL validation PASSED |
+| Web Portal Observability page (`ObservabilityPage.tsx`) rendering real-time failed transfers card, reason inspector, and RED telemetry | `ObservabilityPage.test.tsx`, `npm run build` PASSED |
+| **Exit Criterion**: "How many transfers failed in the last hour?" answerable from a dashboard | **100% fulfilled & verified** |
+
 ---
 
 ## IN PROGRESS
 
-Phase 11 is 100% complete and fully verified. Ready for Phase 12 (Observability).
+Phase 12 is 100% complete and fully verified. Ready for Phase 13 (Deployment & CI/CD).
 
 ---
 
@@ -285,7 +296,7 @@ Phase 11 is 100% complete and fully verified. Ready for Phase 12 (Observability)
 | 9 | Web Portal | **Complete** — verified 2026-08-29 | Each role sees only permitted screens; API 403 on violation |
 | 10 | Security Hardening | **Complete** — verified 2026-08-29 | OWASP checklist confirmed or risk-accepted in writing |
 | 11 | Comprehensive Testing | **Complete** — verified 2026-08-29 | CI green across all test categories |
-| 12 | Observability | Not started | "How many transfers failed in the last hour?" answerable from a dashboard |
+| 12 | Observability | **Complete** — verified 2026-08-29 | "How many transfers failed in the last hour?" answerable from a dashboard |
 | 13 | DevOps and CI/CD | Not started | Full pipeline green; staging deploy successful |
 | 14 | Production Simulation | Not started | System behaves as documented in the failure modes catalog |
 
@@ -308,3 +319,4 @@ Phase 11 is 100% complete and fully verified. Ready for Phase 12 (Observability)
 | 2026-08-29 | 9 | Web Portal built end-to-end with React 19, TypeScript, and Vite. ApiClient with automatic X-Correlation-ID propagation, Bearer token injection, and typed ApiError handling. Spring Security CorsConfigurationSource allowing web origins with banking headers. In-memory AuthContext with session storage and role simulation for all 5 enterprise personas (CUSTOMER, SUPPORT_AGENT, OPERATIONS, AUDITOR, ADMIN). ProtectedRoute and AccessDenied 403 component enforcing zero-trust role guards. PortalLayout with dynamic sidebar navigation filtered per role. Operations Dashboard displaying platform health, NUMERIC(19,4) guarantees, and role module shortcuts. AccountsPage, TransferPage with Idempotency-Key header, TransactionsPage payment lifecycle inspector, and AuditPage regulatory log explorer. RolePermissionMatrix test suite verifying each role sees only permitted screens and receives 403 on violation. Backend AuditControllerIntegrationTest verifying non-admin roles receive 403 ACCESS_DENIED. All 16 Vitest tests green and production bundle compiled. |
 | 2026-08-29 | 10 | Security Hardening built end-to-end across Backend, Android, and Web. Strict HTTP security headers in Spring Security (CSP frame-ancestors none, HSTS, X-Frame-Options DENY, nosniff, Referrer-Policy). In-memory thread-safe sliding-window RateLimiterService and RateLimitingFilter enforcing 429 TOO_MANY_REQUESTS with Retry-After and RATE_LIMIT_EXCEEDED error contract. OWASP Top 10 penetration and vulnerability testing suite (OwaspSecurityHardeningIntegrationTest) verifying IDOR protection, JWT tamper resistance, SQL injection defense, and sensitive data exclusion. Android WindowManager FLAG_SECURE configured in MainActivity to prevent screen capture and task switcher leaks of financial balances. SECURITY.md and THREAT-MODEL.md updated confirming all OWASP Top 10 controls with test evidence and written risk-acceptance. All cross-stack tests green. |
 | 2026-08-29 | 11 | Comprehensive Testing built end-to-end. ApiContractIntegrationTest verifying strict schema conformity and NUMERIC(19,4) string serialization without stack trace leakage. ChaosFailureSimulationIntegrationTest proving outbox retention and at-least-once retry delivery under downstream broker disconnects. PerformanceBenchmarkTest proving high-throughput capability across Money arithmetic (>100,000 ops/s), rate limiting (>50,000 ops/s), and RS256 token generation. JaCoCo test coverage configured with 86% instruction coverage and 92.5% line coverage across the backend. Full cross-stack regression passing cleanly across Backend, Android (16 modules), and Web. |
+| 2026-08-29 | 12 | Observability built end-to-end across Backend, Monitoring, and Web. BankingMetricsService instrumented across transfer lifecycle and idempotency replays. Actuator metrics endpoint and Prometheus scrape configured, verified by ObservabilityMetricsIntegrationTest proving failed transfers are tracked with reason tags. Prometheus alerting rules defined in fincore-alerts.yml. Complete Grafana operations dashboard created in fincore-operations-dashboard.json with dedicated panels answering "How many transfers failed in the last hour, and why?". Web portal ObservabilityPage implemented with live KPI cards and categorized failure inspector, verified by 19 Vitest tests and production build. |

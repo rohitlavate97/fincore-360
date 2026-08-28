@@ -50,7 +50,9 @@ class SecurityConfig(
                     "/api/v1/customer/**",
                     "/api/v1/admin/**",
                     "/api/v1/accounts/**",
-                    "/api/v1/transactions/**"
+                    "/api/v1/transfers/**",
+                    "/api/v1/transactions/**",
+                    "/api/v1/audit/**"
                 ).authenticated()
                 it.anyRequest().permitAll()
             }

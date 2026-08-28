@@ -68,4 +68,18 @@ class SecurityConfig(
 
         return http.build()
     }
+
+    @Bean
+    fun corsConfigurationSource(): org.springframework.web.cors.CorsConfigurationSource {
+        val configuration = org.springframework.web.cors.CorsConfiguration().apply {
+            allowedOrigins = listOf("http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173")
+            allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+            allowedHeaders = listOf("Authorization", "Content-Type", "Idempotency-Key", "X-Correlation-ID")
+            exposedHeaders = listOf("X-Correlation-ID")
+            allowCredentials = true
+        }
+        val source = org.springframework.web.cors.UrlBasedCorsConfigurationSource()
+        source.registerCorsConfiguration("/**", configuration)
+        return source
+    }
 }

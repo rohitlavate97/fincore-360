@@ -5,7 +5,7 @@
 > If a capability is not listed under COMPLETED with a verification method,
 > it does not exist.
 
-**Phase:** 6 — Offline and Sync
+**Phase:** 7 — Audit and Events
 **Last updated:** 2026-08-28
 
 ---
@@ -142,11 +142,25 @@ Toolchain versions verified against official sources on 2026-08-28, not assumed:
 | **Exit Criterion 2**: Sync restores correct state when connectivity restored | `OfflineSyncIntegrationTest` PASSED |
 | Full test suite passing across all 16 Android modules and debug APK | `./gradlew.bat test` & `assembleDebug` → **BUILD SUCCESSFUL** |
 
+### Phase 7 — Audit and Events (Backend)
+
+| Item | Verified by |
+|---|---|
+| Flyway migration V3 creating outbox_events with JSONB payload & index | `SchemaMigrationTest` PASSED |
+| OutboxEvent JPA entity, OutboxStatus (PENDING, PUBLISHED, FAILED), and OutboxEventRepository | `OutboxEventRepositoryTest` PASSED |
+| DomainEvent envelope per ADR-009 & SpringDomainEventPublisher decoupled from domain | `OutboxServiceTest` PASSED |
+| OutboxService: atomic recordEvent in transaction & relayPendingEvents | `OutboxServiceTest` PASSED |
+| Complete audit trail initiation -> completion in TransferService | `TransferServiceTest` PASSED |
+| AuditLogRepository with findEvents & countEvents multi-criteria filtering | `AuditControllerIntegrationTest` PASSED |
+| AuditController: GET /api/v1/audit/events restricted to ROLE_ADMIN | `AuditControllerIntegrationTest` PASSED |
+| **Exit Criterion**: Transfer audit trail complete initiation -> completion | `TransferAuditTrailIntegrationTest` PASSED |
+| Full backend test suite passing cleanly across all modules | `./gradlew.bat test` → **BUILD SUCCESSFUL** (81 tests green) |
+
 ---
 
 ## IN PROGRESS
 
-Phase 6 is 100% complete and fully verified. Ready for Phase 7 (Audit and Events).
+Phase 7 is 100% complete and fully verified. Ready for Phase 8 (Notifications).
 
 ---
 
@@ -201,7 +215,7 @@ Phase 6 is 100% complete and fully verified. Ready for Phase 7 (Audit and Events
 | 4 | Accounts | **Complete** — verified 2026-08-28 | Paginated API, Android renders all four screen states, Room SSOT, 53 backend tests green |
 | 5 | Transactions and Concurrency | **Complete** — verified 2026-08-28 | Idempotency test passes; concurrent transfer preserves balance integrity |
 | 6 | Offline and Sync | **Complete** — verified 2026-08-28 | Cached data offline; sync restores correct state |
-| 7 | Audit and Events | Not started | Transfer audit trail complete initiation → completion |
+| 7 | Audit and Events | **Complete** — verified 2026-08-28 | Transfer audit trail complete initiation → completion |
 | 8 | Notifications | Not started | Notification received, tap deep-links to correct transaction |
 | 9 | Web Portal | Not started | Each role sees only permitted screens; API 403 on violation |
 | 10 | Security Hardening | Not started | OWASP checklist confirmed or risk-accepted in writing |
@@ -224,3 +238,4 @@ Phase 6 is 100% complete and fully verified. Ready for Phase 7 (Audit and Events
 | 2026-08-28 | 4 | Accounts built end-to-end across Backend and Android. Account JPA entity with NUMERIC(19,4) balances and bpchar currency type code, AccountRepository with pagination and customer-scoped queries, AccountService with unique account number generation, AccountController (paginated GET, POST, GET /{id} with 404 enumeration prevention), Room AccountEntity and AccountDao in :core:database, Retrofit AccountApi and repository with Room SSOT in :feature:accounts, Material 3 AccountsScreen and AccountsViewModel rendering all 4 ScreenStates (Loading, Success, Empty, Error), FinCoreNavGraph integration. All 53 backend tests and Android tests green, debug APK built cleanly. |
 | 2026-08-28 | 5 | Transactions and Concurrency built end-to-end across Backend and Android. PostgreSQL-backed idempotency service (ADR-010), Transaction domain entity with state machine validation, deterministic ascending pessimistic account row-locking (DATABASE-DESIGN.md §3), TransferService with balance verification, TransferController requiring Idempotency-Key header, concurrent transfer test proving balance integrity and zero deadlocks, concurrent idempotency race test proving single execution and zero double-debits. Room TransactionEntity, TransactionDao, and database version 3 in :core:database. Retrofit TransferApi and TransactionsApi with Room caching SSOT. Material 3 TransferScreen, TransferViewModel, and TransactionHistoryScreen. FinCoreNavGraph integration. All 67 backend tests and all Android tests green, debug APK built cleanly. |
 | 2026-08-28 | 6 | Offline and Sync built end-to-end across Android architecture. Room PendingMutationEntity, PendingMutationDao, and database version 4 in :core:database. NetworkMonitor and ConnectivityManagerNetworkMonitor registering NetworkCallback with NET_CAPABILITY_INTERNET in :core:network. SyncManager interface and SyncStatus enum in :core:common. DefaultSyncManager orchestrating Accounts & Transactions sync, ADR-011 server-wins conflict resolution, and 30-second foreground throttle. WorkManager SyncWorker (Hilt entry point) and SyncWorkScheduler with CONNECTED constraints and exponential backoff, initialized in FinCoreApplication. Material 3 AccountsScreen with offline warning banner and last-synced timestamp (ADR-011 staleness requirement). Material 3 TransferScreen and TransferViewModel enforcing ONLINE_ONLY classification (blocking offline transfers without fake success, never queued in WorkManager). All 16 Android modules green and debug APK assembled. |
+| 2026-08-28 | 7 | Audit and Events built end-to-end across Backend architecture. Flyway migration V3 creating outbox_events table with JSONB payload and partial index on PENDING status. OutboxEvent JPA entity, OutboxStatus enum (PENDING, PUBLISHED, FAILED), and OutboxEventRepository. DomainEvent envelope per ADR-009 with SpringDomainEventPublisher decoupled from domain logic. OutboxService orchestrating atomic in-transaction event recording and asynchronous relay to publishers with retry and failure handling. TransferService enhanced with complete audit trail (TRANSFER_INITIATED and TRANSFER_COMPLETED with matching correlationId, actorId, and IP address) and transactional outbox persistence, eliminating dual-write loss. AuditLogRepository enhanced with findEvents and countEvents query methods with multi-criteria filtering and pagination. AuditController exposing GET /api/v1/audit/events restricted to ROLE_ADMIN. SecurityConfig updated for explicit resource authentication matchers. Full verification via TransferAuditTrailIntegrationTest and AuditControllerIntegrationTest. All 81 backend tests passing cleanly. |

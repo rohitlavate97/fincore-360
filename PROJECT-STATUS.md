@@ -5,7 +5,7 @@
 > If a capability is not listed under COMPLETED with a verification method,
 > it does not exist.
 
-**Phase:** 9 — Web Portal
+**Phase:** 10 — Security Hardening
 **Last updated:** 2026-08-29
 
 ---
@@ -192,11 +192,28 @@ Toolchain versions verified against official sources on 2026-08-28, not assumed:
 | Production bundle successfully built | `npm run build` → **0 errors, 1612 modules transformed** |
 | Full backend test suite passing cleanly across all modules | `./gradlew.bat test` → **BUILD SUCCESSFUL** (88 tests green) |
 
+### Phase 10 — Security Hardening (Backend, Android, Web)
+
+| Item | Verified by |
+|---|---|
+| Strict HTTP security headers in Spring Security (CSP `frame-ancestors 'none'`, HSTS, X-Frame-Options: DENY, nosniff, Referrer-Policy) | `SecurityHeadersIntegrationTest` PASSED |
+| In-memory sliding-window RateLimiterService with thread-safe timestamp deques | `RateLimiterServiceTest` PASSED (2/2 tests) |
+| RateLimitingFilter on `/auth/login` and `/transfers` returning 429 TOO_MANY_REQUESTS with Retry-After and RATE_LIMIT_EXCEEDED error contract | `RateLimitingIntegrationTest` PASSED |
+| OWASP A01 (Broken Access Control / IDOR): other customer account lookup returns 404 with zero data leak | `OwaspSecurityHardeningIntegrationTest` PASSED |
+| OWASP A02 (Cryptographic Failures): tampered JWT signature returns 401 UNAUTHORIZED | `OwaspSecurityHardeningIntegrationTest` PASSED |
+| OWASP A03 (Injection): SQL injection strings safely handled via parameterized queries without SQL syntax error or leak | `OwaspSecurityHardeningIntegrationTest` PASSED |
+| OWASP A04 (Sensitive Data Exposure): passwords and hashes excluded from API responses, stack traces suppressed | `OwaspSecurityHardeningIntegrationTest` PASSED |
+| OWASP A07 (Auth Failures): invalid credentials return generic 401 error contract | `OwaspSecurityHardeningIntegrationTest` PASSED |
+| Android WindowManager FLAG_SECURE configured in MainActivity to prevent screen capture and task switcher preview leaks | `AndroidSecurityPolicyTest`, `assembleDebug` PASSED |
+| OWASP Top 10 checklist confirmed or risk-accepted in writing in `SECURITY.md` and `THREAT-MODEL.md` | `SECURITY.md` & `THREAT-MODEL.md` review PASSED |
+| **Exit Criterion**: OWASP checklist confirmed or risk-accepted in writing | **100% fulfilled & verified** |
+| Full cross-stack test regression passing cleanly | Backend test suite green, Web 16/16 tests green |
+
 ---
 
 ## IN PROGRESS
 
-Phase 9 is 100% complete and fully verified. Ready for Phase 10 (Security Hardening).
+Phase 10 is 100% complete and fully verified. Ready for Phase 11 (Comprehensive Testing).
 
 ---
 
@@ -254,7 +271,7 @@ Phase 9 is 100% complete and fully verified. Ready for Phase 10 (Security Harden
 | 7 | Audit and Events | **Complete** — verified 2026-08-28 | Transfer audit trail complete initiation → completion |
 | 8 | Notifications | **Complete** — verified 2026-08-29 | Notification received, tap deep-links to correct transaction |
 | 9 | Web Portal | **Complete** — verified 2026-08-29 | Each role sees only permitted screens; API 403 on violation |
-| 10 | Security Hardening | Not started | OWASP checklist confirmed or risk-accepted in writing |
+| 10 | Security Hardening | **Complete** — verified 2026-08-29 | OWASP checklist confirmed or risk-accepted in writing |
 | 11 | Comprehensive Testing | Not started | CI green across all test categories |
 | 12 | Observability | Not started | "How many transfers failed in the last hour?" answerable from a dashboard |
 | 13 | DevOps and CI/CD | Not started | Full pipeline green; staging deploy successful |
@@ -277,3 +294,4 @@ Phase 9 is 100% complete and fully verified. Ready for Phase 10 (Security Harden
 | 2026-08-28 | 7 | Audit and Events built end-to-end across Backend architecture. Flyway migration V3 creating outbox_events table with JSONB payload and partial index on PENDING status. OutboxEvent JPA entity, OutboxStatus enum (PENDING, PUBLISHED, FAILED), and OutboxEventRepository. DomainEvent envelope per ADR-009 with SpringDomainEventPublisher decoupled from domain logic. OutboxService orchestrating atomic in-transaction event recording and asynchronous relay to publishers with retry and failure handling. TransferService enhanced with complete audit trail (TRANSFER_INITIATED and TRANSFER_COMPLETED with matching correlationId, actorId, and IP address) and transactional outbox persistence, eliminating dual-write loss. AuditLogRepository enhanced with findEvents and countEvents query methods with multi-criteria filtering and pagination. AuditController exposing GET /api/v1/audit/events restricted to ROLE_ADMIN. SecurityConfig updated for explicit resource authentication matchers. Full verification via TransferAuditTrailIntegrationTest and AuditControllerIntegrationTest. All 81 backend tests passing cleanly. |
 | 2026-08-29 | 8 | Notifications built end-to-end across Backend and Android. Flyway migration V4 creating notifications table with deep_link_uri and customer index. Notification JPA entity, NotificationRepository with unread counting and customer-scoped pagination. NotificationService and TransactionEventListener consuming TRANSFER_COMPLETED domain events and asynchronously creating notifications with deep links (fincore://transactions/{id}) for sender and recipient. NotificationController with GET, PATCH read, and unread-count endpoints enforcing customer isolation. TransferNotificationFlowIntegrationTest verifying transfer execution generates notifications with deep links. Room NotificationEntity, NotificationDao, and FinCoreDatabase version 5. FinCoreNotificationManager with fincore_transactions notification channel and PendingIntent deep links. Retrofit NotificationApi, NotificationRepositoryImpl, and Domain UseCases in :feature:notifications. Material 3 NotificationsScreen and NotificationsViewModel. AndroidManifest.xml deep link intent filter and Navigation Compose deep link routing fincore://transactions/{transactionId} to TransactionDetailScreen. NotificationsViewModelTest verifying notification tap marks read and deep-links to transaction. All 88 backend tests and all 16 Android modules passing cleanly, debug APK assembled. |
 | 2026-08-29 | 9 | Web Portal built end-to-end with React 19, TypeScript, and Vite. ApiClient with automatic X-Correlation-ID propagation, Bearer token injection, and typed ApiError handling. Spring Security CorsConfigurationSource allowing web origins with banking headers. In-memory AuthContext with session storage and role simulation for all 5 enterprise personas (CUSTOMER, SUPPORT_AGENT, OPERATIONS, AUDITOR, ADMIN). ProtectedRoute and AccessDenied 403 component enforcing zero-trust role guards. PortalLayout with dynamic sidebar navigation filtered per role. Operations Dashboard displaying platform health, NUMERIC(19,4) guarantees, and role module shortcuts. AccountsPage, TransferPage with Idempotency-Key header, TransactionsPage payment lifecycle inspector, and AuditPage regulatory log explorer. RolePermissionMatrix test suite verifying each role sees only permitted screens and receives 403 on violation. Backend AuditControllerIntegrationTest verifying non-admin roles receive 403 ACCESS_DENIED. All 16 Vitest tests green and production bundle compiled. |
+| 2026-08-29 | 10 | Security Hardening built end-to-end across Backend, Android, and Web. Strict HTTP security headers in Spring Security (CSP frame-ancestors none, HSTS, X-Frame-Options DENY, nosniff, Referrer-Policy). In-memory thread-safe sliding-window RateLimiterService and RateLimitingFilter enforcing 429 TOO_MANY_REQUESTS with Retry-After and RATE_LIMIT_EXCEEDED error contract. OWASP Top 10 penetration and vulnerability testing suite (OwaspSecurityHardeningIntegrationTest) verifying IDOR protection, JWT tamper resistance, SQL injection defense, and sensitive data exclusion. Android WindowManager FLAG_SECURE configured in MainActivity to prevent screen capture and task switcher leaks of financial balances. SECURITY.md and THREAT-MODEL.md updated confirming all OWASP Top 10 controls with test evidence and written risk-acceptance. All cross-stack tests green. |

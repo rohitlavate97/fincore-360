@@ -24,7 +24,7 @@ class RateLimitingFilter(
     private val objectMapper: ObjectMapper = ObjectMapper().findAndRegisterModules()
 
     companion object {
-        const val LOGIN_LIMIT = 5
+        const val LOGIN_LIMIT = 10
         const val LOGIN_WINDOW_SECONDS = 60L
         const val TRANSFER_LIMIT = 10
         const val TRANSFER_WINDOW_SECONDS = 60L

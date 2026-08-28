@@ -53,6 +53,8 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":feature:auth"))
     implementation(project(":feature:accounts"))
+    implementation(project(":feature:transfer"))
+    implementation(project(":feature:transactions"))
     testImplementation(project(":core:testing"))
 
     implementation(platform(libs.compose.bom))

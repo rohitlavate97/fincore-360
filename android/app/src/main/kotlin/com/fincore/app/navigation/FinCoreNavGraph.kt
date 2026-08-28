@@ -1,5 +1,6 @@
 package com.fincore.app.navigation
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -20,6 +22,8 @@ import com.fincore.feature.accounts.presentation.AccountsScreen
 import com.fincore.feature.accounts.presentation.AccountsViewModel
 import com.fincore.feature.auth.presentation.LoginScreen
 import com.fincore.feature.auth.presentation.LoginViewModel
+import com.fincore.feature.transfer.presentation.TransferScreen
+import com.fincore.feature.transfer.presentation.TransferViewModel
 
 @Composable
 fun FinCoreNavGraph(
@@ -70,6 +74,10 @@ fun FinCoreNavGraph(
                 val viewModel: AccountsViewModel = hiltViewModel()
                 AccountsScreen(viewModel = viewModel)
             }
+            composable(Screen.Transfer.route) {
+                val viewModel: TransferViewModel = hiltViewModel()
+                TransferScreen(viewModel = viewModel)
+            }
             composable(Screen.Profile.route) {
                 ProfileScreenPlaceholder(
                     onLogout = {
@@ -86,10 +94,16 @@ fun FinCoreNavGraph(
 @Composable
 fun DashboardScreenPlaceholder(onNavigate: (String) -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             Text("Dashboard Screen")
             Button(onClick = { onNavigate(Screen.Accounts.route) }) {
                 Text("Go to Accounts")
+            }
+            Button(onClick = { onNavigate(Screen.Transfer.route) }) {
+                Text("Transfer Money")
             }
             Button(onClick = { onNavigate(Screen.Profile.route) }) {
                 Text("Go to Profile")

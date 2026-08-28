@@ -5,7 +5,7 @@
 > If a capability is not listed under COMPLETED with a verification method,
 > it does not exist.
 
-**Phase:** 4 — Accounts
+**Phase:** 5 — Transactions and Concurrency
 **Last updated:** 2026-08-28
 
 ---
@@ -62,7 +62,7 @@ Toolchain versions verified against official sources on 2026-08-28, not assumed:
 | Full Android unit test suite | `./gradlew.bat test` → **BUILD SUCCESSFUL** (all 16 modules passing) |
 | Centralized version catalog (`gradle/libs.versions.toml`) | AGP 9.3.0, Gradle 9.5.0, Compose BOM 2026.08.00, Hilt 2.60.1 |
 | Jetpack Compose UI architecture & theme system (`:core:ui`) | `FinCoreTheme`, Material 3 dynamic coloring, typography |
-| Generic `ScreenStateContainer` composable pattern | Verified in `AccountsScreen` |
+| Generic `ScreenStateContainer` composable pattern | Verified in `AccountsScreen` and `TransferScreen` |
 | Sealed `ScreenState<T>` and `ErrorType` model (`:core:common`) | `ScreenStateTest` unit tests PASSED |
 | Dagger Hilt dependency injection wiring | `@HiltAndroidApp`, `@AndroidEntryPoint`, KSP code generation PASSED |
 | Navigation Compose graph with bottom navigation bar | `FinCoreNavGraph`, `FinCoreBottomBar`, `ScreenTest` PASSED |
@@ -107,11 +107,30 @@ Toolchain versions verified against official sources on 2026-08-28, not assumed:
 | Material 3 AccountsScreen and AccountsViewModel with all 4 ScreenStates | `AccountsViewModelTest` PASSED (4/4 tests) |
 | Navigation Compose integration in :app with real AccountsScreen | `./gradlew.bat test` and `assembleDebug` → **BUILD SUCCESSFUL** |
 
+### Phase 5 — Transactions and Concurrency (Backend & Android)
+
+| Item | Verified by |
+|---|---|
+| IdempotencyKeyRecord & IdempotencyKeyRepository with JSONB body | `IdempotencyServiceTest` PASSED (5/5 tests) |
+| IdempotencyService with IN_PROGRESS lock, COMPLETE replay, 409 conflict | `IdempotencyServiceTest` PASSED |
+| Transaction entity and domain state machine with transitionTo validation | `TransactionStateMachineTest` PASSED (6/6 tests) |
+| AccountRepository with deterministic `ORDER BY id ASC FOR UPDATE` deadlock defense | `TransactionRepositoryTest` PASSED |
+| TransferService implementing 8-step load-bearing flow & ArchUnit boundary compliance | `TransferServiceTest` PASSED (3/3 tests) |
+| TransferController: POST /transfers (mandatory Idempotency-Key), GET /transactions/{id} | `TransferControllerIntegrationTest` PASSED (4/4 tests) |
+| **Exit Criterion 1**: Concurrent bidirectional transfers preserve balance integrity | `ConcurrentTransferIntegrationTest` PASSED |
+| **Exit Criterion 2**: Concurrent idempotency race executes once, no double debit | `ConcurrentTransferIntegrationTest` PASSED |
+| Full backend test suite passing cleanly across all modules | `./gradlew.bat test` → **BUILD SUCCESSFUL** (67 tests green) |
+| Room TransactionEntity, TransactionDao, and DB version 3 in :core:database | `:core:database:test` PASSED |
+| Retrofit TransferApi, TransferRepositoryImpl, and ExecuteTransferUseCase | `TransferRepositoryTest`, `ExecuteTransferUseCaseTest` PASSED |
+| Material 3 TransferScreen and TransferViewModel with validation & state feedback | `TransferViewModelTest` PASSED (2/2 tests) |
+| Retrofit TransactionsApi, TransactionRepositoryImpl, and TransactionsViewModel | `TransactionRepositoryTest`, `TransactionsViewModelTest` PASSED |
+| Navigation Compose integration in :app (Transfer route, Dashboard quick-action) | `./gradlew.bat test` & `assembleDebug` → **BUILD SUCCESSFUL** |
+
 ---
 
 ## IN PROGRESS
 
-Phase 4 is 100% complete and fully verified. Ready for Phase 5 (Transactions and Concurrency).
+Phase 5 is 100% complete and fully verified. Ready for Phase 6 (Offline and Sync).
 
 ---
 
@@ -151,7 +170,6 @@ Phase 4 is 100% complete and fully verified. Ready for Phase 5 (Transactions and
 | **Docker image** | `backend.Dockerfile` has never been built. Multi-stage layout, non-root user, and healthcheck are design intent only. |
 | **Docker Compose stack** | `docker-compose.yml` has never been run. Service startup ordering, the `pg_isready` healthcheck gate, and container networking are all unexercised (`FM-INFRA-001`, `FM-INFRA-002`). |
 | **PostgreSQL 18.6 specifically** | Tests run against the embedded server's PostgreSQL binary. The Compose file pins `postgres:18.6-alpine`; these have not been cross-checked. |
-| Concurrency and locking | No `SELECT … FOR UPDATE` code exists yet — Phase 5. The non-negative balance *constraint* is verified; the *locking strategy* is not. |
 | Performance | Nothing measured. No benchmark, no load test, no query plan reviewed. |
 
 ---
@@ -165,7 +183,7 @@ Phase 4 is 100% complete and fully verified. Ready for Phase 5 (Transactions and
 | 2 | Android Foundation | **Complete** — verified 2026-08-28 | App builds (`app-debug.apk`), navigation works, Hilt injects, 16 modules green |
 | 3 | Authentication | **Complete** — verified 2026-08-28 | Login E2E, refresh, lockout, reuse detection, 401 anon, 403 role, Keystore, single-flight, M3 LoginScreen |
 | 4 | Accounts | **Complete** — verified 2026-08-28 | Paginated API, Android renders all four screen states, Room SSOT, 53 backend tests green |
-| 5 | Transactions and Concurrency | Not started | Idempotency test passes; concurrent transfer preserves balance integrity |
+| 5 | Transactions and Concurrency | **Complete** — verified 2026-08-28 | Idempotency test passes; concurrent transfer preserves balance integrity |
 | 6 | Offline and Sync | Not started | Cached data offline; sync restores correct state |
 | 7 | Audit and Events | Not started | Transfer audit trail complete initiation → completion |
 | 8 | Notifications | Not started | Notification received, tap deep-links to correct transaction |
@@ -188,3 +206,4 @@ Phase 4 is 100% complete and fully verified. Ready for Phase 5 (Transactions and
 | 2026-08-28 | 2 | Android foundation built. AGP 9.3.0 / Gradle 9.5.0 / Kotlin 2.3.21 / Compose BOM 2026.08.00 / Hilt 2.60.1 / Room 2.8.4 / Retrofit 3.0.0 / OkHttp 5.5.0. 16-module Clean Architecture graph (:app, 6 :core, 9 :feature). ScreenState<T> model, FinCoreTheme, FinCoreNavGraph, Hilt injection verified. Build & tests green, app-debug.apk verified. |
 | 2026-08-28 | 3 | Authentication built end-to-end across Backend and Android. Asymmetric RS256 JWT, rotating refresh tokens with reuse detection, 5-attempt lockout, immutable audit logging, Spring Security RBAC. Android Keystore AES-256 GCM storage, single-flight refresh authenticator with Mutex, Retrofit AuthApi/Repository/UseCases, Material 3 LoginScreen and LoginViewModel with ScreenState, Navigation route guards. All 45 backend tests and all Android tests green, debug APK built cleanly. |
 | 2026-08-28 | 4 | Accounts built end-to-end across Backend and Android. Account JPA entity with NUMERIC(19,4) balances and bpchar currency type code, AccountRepository with pagination and customer-scoped queries, AccountService with unique account number generation, AccountController (paginated GET, POST, GET /{id} with 404 enumeration prevention), Room AccountEntity and AccountDao in :core:database, Retrofit AccountApi and repository with Room SSOT in :feature:accounts, Material 3 AccountsScreen and AccountsViewModel rendering all 4 ScreenStates (Loading, Success, Empty, Error), FinCoreNavGraph integration. All 53 backend tests and Android tests green, debug APK built cleanly. |
+| 2026-08-28 | 5 | Transactions and Concurrency built end-to-end across Backend and Android. PostgreSQL-backed idempotency service (ADR-010), Transaction domain entity with state machine validation, deterministic ascending pessimistic account row-locking (DATABASE-DESIGN.md §3), TransferService with balance verification, TransferController requiring Idempotency-Key header, concurrent transfer test proving balance integrity and zero deadlocks, concurrent idempotency race test proving single execution and zero double-debits. Room TransactionEntity, TransactionDao, and database version 3 in :core:database. Retrofit TransferApi and TransactionsApi with Room caching SSOT. Material 3 TransferScreen, TransferViewModel, and TransactionHistoryScreen. FinCoreNavGraph integration. All 67 backend tests and all Android tests green, debug APK built cleanly. |

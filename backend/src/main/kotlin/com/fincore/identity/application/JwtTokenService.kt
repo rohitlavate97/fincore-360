@@ -28,6 +28,7 @@ class JwtTokenService(
             .id(UUID.randomUUID().toString())
             .claim("username", user.username)
             .claim("roles", user.getRoleList())
+            .claim("customerId", user.customerId?.toString() ?: user.id.toString())
             .build()
 
         return jwtEncoder.encode(JwtEncoderParameters.from(claims)).tokenValue

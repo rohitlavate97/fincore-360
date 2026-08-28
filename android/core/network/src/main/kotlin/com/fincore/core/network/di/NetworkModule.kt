@@ -20,6 +20,11 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
+    @Provides
+    @Singleton
+    fun provideNetworkMonitor(networkMonitor: com.fincore.core.network.monitor.ConnectivityManagerNetworkMonitor): com.fincore.core.network.monitor.NetworkMonitor = networkMonitor
+
+
     private const val BASE_URL = "https://api.fincore.com/"
 
     @Provides

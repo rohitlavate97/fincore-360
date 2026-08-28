@@ -52,6 +52,12 @@ export const navItems: NavItem[] = [
     icon: <ClipboardList size={18} />,
     allowedRoles: ['AUDITOR', 'ADMIN'],
   },
+  {
+    label: 'Observability & Metrics',
+    path: '/observability',
+    icon: <Activity size={18} />,
+    allowedRoles: ['OPERATIONS', 'AUDITOR', 'ADMIN'],
+  },
 ]
 
 export const PortalLayout: React.FC = () => {

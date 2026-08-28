@@ -9,6 +9,7 @@ import { AccountsPage } from './pages/AccountsPage'
 import { TransferPage } from './pages/TransferPage'
 import { TransactionsPage } from './pages/TransactionsPage'
 import { AuditPage } from './pages/AuditPage'
+import { ObservabilityPage } from './pages/ObservabilityPage'
 
 export const App: React.FC = () => {
   return (
@@ -54,6 +55,14 @@ export const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={['AUDITOR', 'ADMIN']}>
                 <AuditPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/observability"
+            element={
+              <ProtectedRoute allowedRoles={['OPERATIONS', 'AUDITOR', 'ADMIN']}>
+                <ObservabilityPage />
               </ProtectedRoute>
             }
           />

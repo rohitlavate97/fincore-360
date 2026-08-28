@@ -95,14 +95,33 @@ class AuditControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("Customer access token returns 403 ACCESS_DENIED on audit endpoint")
-    fun customerDeniedOnAuditEndpoint() {
-        mockMvc.perform(
-            get("/api/v1/audit/events")
-                .header("Authorization", "Bearer $customerToken")
+    @DisplayName("Exit Criterion: Non-admin roles return 403 ACCESS_DENIED on audit endpoint")
+    fun nonAdminRolesDeniedOnAuditEndpoint() {
+        val nonAdminRoles = listOf(
+            Role.CUSTOMER.authority,
+            "ROLE_SUPPORT_AGENT",
+            "ROLE_OPERATIONS"
         )
-            .andExpect(status().isForbidden)
-            .andExpect(jsonPath("$.errorCode").value("ACCESS_DENIED"))
+
+        for (authority in nonAdminRoles) {
+            val user = userRepository.save(
+                User(
+                    username = "user_${UUID.randomUUID().toString().take(8)}",
+                    email = "user_${UUID.randomUUID().toString().take(8)}@bank.test",
+                    passwordHash = "hash",
+                    roles = authority,
+                    status = UserStatus.ACTIVE
+                )
+            )
+            val token = jwtTokenService.createAccessToken(user)
+
+            mockMvc.perform(
+                get("/api/v1/audit/events")
+                    .header("Authorization", "Bearer $token")
+            )
+                .andExpect(status().isForbidden)
+                .andExpect(jsonPath("$.errorCode").value("ACCESS_DENIED"))
+        }
     }
 
     @Test

@@ -32,23 +32,29 @@ class CorrelationIdFilter : OncePerRequestFilter() {
         response: HttpServletResponse,
         filterChain: FilterChain,
     ) {
-        val correlationId = request.getHeader(HEADER)?.takeIf { it.isNotBlank() } ?: UUID.randomUUID().toString()
+        val correlationId = request.getHeader(HEADER)
+            ?.trim()
+            ?.takeIf { it.length == 36 && UUID_RE.matches(it) }
+            ?: UUID.randomUUID().toString()
 
+        val previous = MDC.get(MDC_KEY)
         MDC.put(MDC_KEY, correlationId)
         response.setHeader(HEADER, correlationId)
         try {
             filterChain.doFilter(request, response)
         } finally {
-            // Servlet threads are pooled and reused. Failing to clear the MDC
-            // leaks this request's correlation ID onto an unrelated later
-            // request, which is worse than having none at all.
-            MDC.remove(MDC_KEY)
+            if (previous != null) {
+                MDC.put(MDC_KEY, previous)
+            } else {
+                MDC.remove(MDC_KEY)
+            }
         }
     }
 
     companion object {
         const val HEADER = "X-Correlation-ID"
         const val MDC_KEY = "correlationId"
+        private val UUID_RE = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
         /** The correlation ID for the request being handled, if any. */
         fun current(): String? = MDC.get(MDC_KEY)

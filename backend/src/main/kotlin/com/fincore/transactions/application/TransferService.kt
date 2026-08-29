@@ -168,8 +168,8 @@ class TransferService(
 
             return result
         } catch (e: Exception) {
-            // Failure audit log & outbox event
-            auditLogRepository.append(
+            // Failure audit log survives transaction rollback via REQUIRES_NEW
+            auditLogRepository.appendIndependently(
                 eventType = "TRANSFER_FAILED",
                 actorId = command.callerUserId,
                 actorRole = "ROLE_CUSTOMER",
@@ -180,19 +180,6 @@ class TransferService(
                 ipAddress = httpRequest?.remoteAddr,
                 userAgent = httpRequest?.getHeader("User-Agent"),
                 correlationId = correlationId
-            )
-
-            outboxService.recordEvent(
-                eventType = "TRANSFER_FAILED",
-                aggregateType = "TRANSACTION",
-                aggregateId = transaction.id,
-                actorId = command.callerUserId,
-                correlationId = correlationId,
-                payload = mapOf(
-                    "transactionId" to transaction.id.toString(),
-                    "reason" to (e.message ?: "Transfer failed"),
-                    "status" to "FAILED"
-                )
             )
 
             val reason = when (e) {

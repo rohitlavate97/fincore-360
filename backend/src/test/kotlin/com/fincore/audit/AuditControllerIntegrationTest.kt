@@ -92,6 +92,8 @@ class AuditControllerIntegrationTest {
             .andExpect(jsonPath("$.totalElements").value(1))
             .andExpect(jsonPath("$.items[0].eventType").value("TRANSFER_INITIATED"))
             .andExpect(jsonPath("$.items[0].actorRole").value("ROLE_ADMIN"))
+            .andExpect(jsonPath("$.items[0].ipAddress").value("127.0.0.1"))
+            .andExpect(jsonPath("$.items[0].userAgent").value("JUnit"))
     }
 
     @Test

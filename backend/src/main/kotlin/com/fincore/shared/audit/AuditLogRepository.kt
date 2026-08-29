@@ -2,6 +2,8 @@ package com.fincore.shared.audit
 
 import org.springframework.jdbc.core.simple.JdbcClient
 import org.springframework.stereotype.Repository
+import org.springframework.transaction.annotation.Propagation
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.UUID
 
@@ -39,10 +41,12 @@ class AuditLogRepository(
         val sql = """
             INSERT INTO audit_events (
                 event_id, event_type, actor_id, actor_role, resource_type,
-                resource_id, outcome, reason, correlation_id, timestamp
+                resource_id, outcome, reason, ip_address, user_agent,
+                correlation_id, timestamp
             ) VALUES (
                 :eventId, :eventType, :actorId, :actorRole, :resourceType,
-                :resourceId, :outcome, :reason, :correlationId, now()
+                :resourceId, :outcome, :reason, CAST(:ipAddress AS INET), :userAgent,
+                :correlationId, now()
             )
         """.trimIndent()
 
@@ -55,8 +59,37 @@ class AuditLogRepository(
             .param("resourceId", resourceId)
             .param("outcome", outcome)
             .param("reason", reason)
+            .param("ipAddress", ipAddress)
+            .param("userAgent", userAgent?.take(1000))
             .param("correlationId", correlationId)
             .update()
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    fun appendIndependently(
+        eventType: String,
+        actorId: UUID?,
+        actorRole: String?,
+        resourceType: String?,
+        resourceId: UUID?,
+        outcome: String,
+        reason: String?,
+        ipAddress: String?,
+        userAgent: String?,
+        correlationId: UUID?
+    ) {
+        append(
+            eventType = eventType,
+            actorId = actorId,
+            actorRole = actorRole,
+            resourceType = resourceType,
+            resourceId = resourceId,
+            outcome = outcome,
+            reason = reason,
+            ipAddress = ipAddress,
+            userAgent = userAgent,
+            correlationId = correlationId
+        )
     }
 
     fun findEvents(

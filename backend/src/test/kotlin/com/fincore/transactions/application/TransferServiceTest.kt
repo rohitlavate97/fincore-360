@@ -120,8 +120,7 @@ class TransferServiceTest {
 
         verify(exactly = 1) {
             auditLogRepository.append(eventType = "TRANSFER_INITIATED", any(), any(), any(), any(), any(), any(), any(), any(), any())
-            auditLogRepository.append(eventType = "TRANSFER_FAILED", any(), any(), any(), any(), any(), any(), any(), any(), any())
-            outboxService.recordEvent(eventType = "TRANSFER_FAILED", any(), any(), any(), any(), any())
+            auditLogRepository.appendIndependently(eventType = "TRANSFER_FAILED", any(), any(), any(), any(), any(), any(), any(), any(), any())
         }
     }
 

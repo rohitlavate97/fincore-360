@@ -207,4 +207,33 @@ class TransferAuditTrailIntegrationTest {
                 .update()
         }
     }
+
+    @Test
+    @DisplayName("H-1: Failed transfer still records TRANSFER_FAILED in the audit trail surviving transaction rollback")
+    fun failedTransferRecordsTransferFailedInAuditTrail() {
+        val correlationId = UUID.randomUUID()
+        val idempotencyKey = UUID.randomUUID().toString()
+        val request = CreateTransferRequest(
+            sourceAccountId = accountA.id,
+            destinationAccountId = accountB.id,
+            amount = BigDecimal("50000.0000"),
+            currency = "GBP"
+        )
+
+        mockMvc.perform(
+            post("/api/v1/transfers")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer $tokenA")
+                .header("Idempotency-Key", idempotencyKey)
+                .header("X-Correlation-ID", correlationId.toString())
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isUnprocessableEntity)
+
+        val events = auditLogRepository.findEvents(correlationId = correlationId)
+        assertTrue(
+            events.any { it.eventType == "TRANSFER_FAILED" && it.outcome == "FAILURE" },
+            "Failure audit event must survive transaction rollback and be durably persisted"
+        )
+    }
 }

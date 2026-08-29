@@ -1,0 +1,58 @@
+# Production Overrides for fincore-360
+
+global:
+  environment: "production"
+  domain: "fincore360.com"
+
+backend:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 1536Mi
+    limits:
+      cpu: 2000m
+      memory: 2048Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  env:
+    APP_ENV: "production"
+    LOG_FORMAT: "ecs"
+    LOG_LEVEL_FINCORE: "INFO"
+    SPRING_PROFILES_ACTIVE: "prod"
+
+web:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+ingress:
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  hosts:
+    - host: banking.fincore360.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: backend
+        - path: /actuator
+          pathType: Prefix
+          service: backend
+        - path: /
+          pathType: Prefix
+          service: web
+  tls:
+    - secretName: fincore-prod-tls
+      hosts:
+        - banking.fincore360.com

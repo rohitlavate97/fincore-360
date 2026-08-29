@@ -1,0 +1,46 @@
+# Staging Overrides for fincore-360
+
+global:
+  environment: "staging"
+  domain: "staging.fincore360.com"
+
+backend:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1500m
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 75
+  env:
+    APP_ENV: "staging"
+    LOG_FORMAT: "ecs"
+    LOG_LEVEL_FINCORE: "DEBUG"
+    SPRING_PROFILES_ACTIVE: "staging"
+
+ingress:
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: staging.banking.fincore360.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: backend
+        - path: /actuator
+          pathType: Prefix
+          service: backend
+        - path: /
+          pathType: Prefix
+          service: web
+  tls:
+    - secretName: fincore-staging-tls
+      hosts:
+        - staging.banking.fincore360.com

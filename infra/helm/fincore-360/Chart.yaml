@@ -1,0 +1,14 @@
+apiVersion: v2
+name: fincore-360
+description: Enterprise Digital Banking Simulation Platform Helm Chart
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+maintainers:
+  - name: FinCore Architecture Team
+    email: devops@fincore360.internal
+keywords:
+  - digital-banking
+  - spring-boot
+  - react
+  - fincore

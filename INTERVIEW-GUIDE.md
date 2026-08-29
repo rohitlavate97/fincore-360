@@ -43,13 +43,12 @@ strength of a document.
 
 | Area | Topics | State |
 |---|---|---|
-| **Architecture** | Modular monolith, Clean Architecture, MVVM, repository pattern, event-driven design, CQRS concepts, microservice tradeoffs, API design, error handling | Decision-level only |
-| **Data** | ACID, isolation levels, optimistic vs pessimistic locking, N+1, indexing, migrations, monetary precision | Decision-level only |
-| **Security** | JWT internals, refresh rotation, OWASP Top 10, RBAC vs ABAC, Android Keystore, XSS, CSRF, rate limiting | Decision-level only |
-| **Backend** | Spring Boot, Spring Security, JWT, OAuth2 concepts, RBAC, idempotency, concurrency, PostgreSQL transactions, Redis, Kafka, Flyway, OpenAPI, Testcontainers | Not started |
-| **Android** | Compose, ViewModel, StateFlow, Coroutines, Flow, Room, Hilt, Retrofit, WorkManager, Keystore, offline-first, modularization, state management, navigation | Not started |
-| **Android legacy** | Views, XML layouts, RecyclerView, Fragment lifecycle | Not started |
-| **Operations** | Structured logging, distributed tracing, metrics, health checks, Docker, Kubernetes, CI/CD, blue-green deployment | Not started |
+| **Architecture** | Modular monolith, Clean Architecture, MVVM, repository pattern, event-driven design, transactional outbox, API design, typed error contracts | **Implemented & Verified in Repo** (Phases 0, 1, 2, 6, 7, 9) |
+| **Data** | ACID, NUMERIC(19,4), pessimistic row locking, deterministic ascending lock order, append-only triggers, Flyway expand-and-contract | **Implemented & Verified in Repo** (Phases 1, 4, 5, 7, 14) |
+| **Security** | Asymmetric RS256 JWT, rotating refresh tokens with reuse detection, OWASP Top 10, Spring Security RBAC, Android Keystore AES-GCM, rate limiting | **Implemented & Verified in Repo** (Phases 3, 10, 14) |
+| **Backend** | Spring Boot 4, Spring Security, JWT OAuth2 Resource Server, PostgreSQL idempotency, Transactional Outbox, Micrometer metrics, OpenAPI | **Implemented & Verified in Repo** (Phases 1, 3, 4, 5, 7, 8, 10-14) |
+| **Android** | Jetpack Compose, ViewModel, StateFlow, Room SSOT, Hilt DI, Retrofit, WorkManager sync, Keystore AES-256 GCM, offline-first guards | **Implemented & Verified in Repo** (Phases 2, 3, 4, 5, 6, 8, 10) |
+| **Operations & SRE** | Structured JSON logging, correlation IDs, Micrometer metrics, Grafana dashboards, decoupled K8s health probes, Helm, AWS Terraform, automated rollback | **Implemented & Verified in Repo** (Phases 1, 12, 13, 14) |
 
 ---
 

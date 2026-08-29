@@ -188,16 +188,16 @@ class AuthService(
             }
             is RefreshResult.ReuseDetected -> {
                 auditLog(
-                    eventType = "TOKEN_REFRESH",
+                    eventType = "TOKEN_THEFT_DETECTED",
                     actorId = null,
                     actorRole = null,
                     resourceType = "REFRESH_TOKEN",
                     resourceId = null,
                     outcome = "FAILURE",
-                    reason = "REUSE_DETECTED",
+                    reason = "CRITICAL: REUSE_DETECTED: ALL_USER_SESSIONS_REVOKED",
                     httpRequest = httpRequest
                 )
-                throw AuthenticationFailedException("Refresh token reuse detected. All sessions on this device have been revoked.")
+                throw AuthenticationFailedException("Refresh token reuse detected. All active sessions for this account have been revoked.")
             }
             is RefreshResult.Expired -> {
                 throw AuthenticationFailedException("Refresh token expired. Please log in again.")

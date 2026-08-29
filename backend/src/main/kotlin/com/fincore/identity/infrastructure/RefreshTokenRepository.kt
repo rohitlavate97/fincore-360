@@ -15,11 +15,11 @@ interface RefreshTokenRepository : JpaRepository<RefreshToken, UUID> {
     fun findByTokenHash(tokenHash: String): Optional<RefreshToken>
     fun findByPreviousTokenHash(previousTokenHash: String): Optional<RefreshToken>
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("UPDATE RefreshToken r SET r.revokedAt = :now WHERE r.userId = :userId AND r.deviceId = :deviceId")
     fun revokeAllByUserIdAndDeviceId(userId: UUID, deviceId: String, now: Instant = Instant.now())
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("UPDATE RefreshToken r SET r.revokedAt = :now WHERE r.userId = :userId")
     fun revokeAllByUserId(userId: UUID, now: Instant = Instant.now())
 }

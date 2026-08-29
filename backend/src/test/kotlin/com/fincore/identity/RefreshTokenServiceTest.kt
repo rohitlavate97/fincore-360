@@ -99,4 +99,62 @@ class RefreshTokenServiceTest {
         val result = refreshTokenService.rotateRefreshToken(token, deviceId)
         assertEquals(RefreshResult.ReuseDetected, result)
     }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("M-2: Token reuse on device A revokes all sessions across all devices for the account")
+    fun tokenReuseOnDeviceARevokesAllSessionsAcrossAllDevices() {
+        val user = userRepository.save(
+            User(
+                id = UUID.randomUUID(),
+                username = "multi_device_user_${UUID.randomUUID()}",
+                email = "multidev_${UUID.randomUUID()}@example.com",
+                passwordHash = "hash",
+                roles = Role.CUSTOMER.authority,
+                status = UserStatus.ACTIVE
+            )
+        )
+
+        // Session on Laptop
+        val tokenLaptop1 = refreshTokenService.createRefreshToken(user.id, "device-laptop")
+        val rotateLaptopResult = refreshTokenService.rotateRefreshToken(tokenLaptop1, "device-laptop")
+        assertTrue(rotateLaptopResult is RefreshResult.Success)
+
+        // Session on Phone
+        val tokenPhone = refreshTokenService.createRefreshToken(user.id, "device-phone")
+        assertNotNull(tokenPhone)
+
+        // Replaying compromised tokenLaptop1 triggers token theft reuse detection
+        val reuseResult = refreshTokenService.rotateRefreshToken(tokenLaptop1, "device-laptop")
+        assertEquals(RefreshResult.ReuseDetected, reuseResult)
+
+        // Phone session must also be revoked as account-level kill switch (M-2)
+        val phoneRotateResult = refreshTokenService.rotateRefreshToken(tokenPhone, "device-phone")
+        assertEquals(RefreshResult.ReuseDetected, phoneRotateResult)
+    }
+
+    @Test
+    @org.junit.jupiter.api.DisplayName("M-1: Absolute session lifetime expires and cannot be refreshed indefinitely")
+    fun absoluteSessionLifetimeExpiresAndCannotBeRefreshedIndefinitely() {
+        val user = userRepository.save(
+            User(
+                id = UUID.randomUUID(),
+                username = "absolute_expiry_user_${UUID.randomUUID()}",
+                email = "abs_exp_${UUID.randomUUID()}@example.com",
+                passwordHash = "hash",
+                roles = Role.CUSTOMER.authority,
+                status = UserStatus.ACTIVE
+            )
+        )
+
+        val deviceId = "device-tablet"
+        val token = refreshTokenService.createRefreshToken(user.id, deviceId)
+
+        // Fast-forward token creation to 31 days ago (past 30-day absolute lifetime)
+        val stored = refreshTokenRepository.findByUserIdAndDeviceId(user.id, deviceId).get()
+        stored.expiresAt = java.time.Instant.now().minus(java.time.Duration.ofDays(1))
+        refreshTokenRepository.save(stored)
+
+        val result = refreshTokenService.rotateRefreshToken(token, deviceId)
+        assertEquals(RefreshResult.Expired, result)
+    }
 }

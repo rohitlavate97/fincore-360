@@ -22,6 +22,7 @@ class RefreshTokenService(
 
     companion object {
         const val REFRESH_TOKEN_EXPIRY_DAYS = 7L
+        const val ABSOLUTE_SESSION_LIFETIME_DAYS = 30L
     }
 
     @Transactional
@@ -55,14 +56,14 @@ class RefreshTokenService(
     fun rotateRefreshToken(rawToken: String, deviceId: String): RefreshResult {
         val tokenHash = TokenHasher.hash(rawToken)
 
-        // Check if presented token matches an already rotated previous token (REUSE DETECTION)
+        // Check if presented token matches an already rotated previous token (REUSE DETECTION - M-2)
         val previousMatch = refreshTokenRepository.findByPreviousTokenHash(tokenHash)
         if (previousMatch.isPresent) {
             val token = previousMatch.get()
-            log.warn("Reuse of already rotated refresh token detected for user: {}, device: {}. Revoking entire device token family.", token.userId, token.deviceId)
+            log.warn("Reuse of already rotated refresh token detected for user: {}, device: {}. Revoking ALL active sessions across all devices for account (M-2).", token.userId, token.deviceId)
             token.revokedAt = Instant.now()
             refreshTokenRepository.save(token)
-            refreshTokenRepository.revokeAllByUserIdAndDeviceId(token.userId, token.deviceId)
+            refreshTokenRepository.revokeAllByUserId(token.userId)
             return RefreshResult.ReuseDetected
         }
 
@@ -74,15 +75,17 @@ class RefreshTokenService(
 
         val token = tokenOpt.get()
 
-        // If current token is already revoked, revoke device family
+        // If current token is already revoked, revoke all user sessions (M-2)
         if (token.isRevoked) {
-            log.warn("Revoked refresh token presented for user: {}, device: {}. Revoking entire device token family.", token.userId, token.deviceId)
-            refreshTokenRepository.revokeAllByUserIdAndDeviceId(token.userId, token.deviceId)
+            log.warn("Revoked refresh token presented for user: {}, device: {}. Revoking ALL active sessions across all devices for account (M-2).", token.userId, token.deviceId)
+            refreshTokenRepository.revokeAllByUserId(token.userId)
             return RefreshResult.ReuseDetected
         }
 
-        if (token.isExpired) {
-            log.info("Expired refresh token presented for user: {}", token.userId)
+        // M-1: Absolute lifetime check
+        val maxAbsoluteExpiry = token.createdAt.plus(ABSOLUTE_SESSION_LIFETIME_DAYS, ChronoUnit.DAYS)
+        if (Instant.now().isAfter(maxAbsoluteExpiry) || token.isExpired) {
+            log.info("Refresh token expired or exceeded absolute session lifetime for user: {}", token.userId)
             token.revokedAt = Instant.now()
             refreshTokenRepository.save(token)
             return RefreshResult.Expired
@@ -93,11 +96,12 @@ class RefreshTokenService(
             return RefreshResult.UserLocked
         }
 
-        // Rotate: shift tokenHash to previousTokenHash, issue new tokenHash
+        // Rotate: shift tokenHash to previousTokenHash, issue new tokenHash with bounded sliding window (M-1)
         val newRawToken = generateSecureToken()
         token.previousTokenHash = token.tokenHash
         token.tokenHash = TokenHasher.hash(newRawToken)
-        token.expiresAt = Instant.now().plus(REFRESH_TOKEN_EXPIRY_DAYS, ChronoUnit.DAYS)
+        val nextSlidingExpiry = Instant.now().plus(REFRESH_TOKEN_EXPIRY_DAYS, ChronoUnit.DAYS)
+        token.expiresAt = if (nextSlidingExpiry.isBefore(maxAbsoluteExpiry)) nextSlidingExpiry else maxAbsoluteExpiry
         refreshTokenRepository.save(token)
 
         return RefreshResult.Success(newRawToken, user)
@@ -111,13 +115,8 @@ class RefreshTokenService(
         refreshTokenRepository.save(token)
     }
 
-    @Transactional
-    fun revokeAllForUserAndDevice(userId: UUID, deviceId: String) {
-        refreshTokenRepository.revokeAllByUserIdAndDeviceId(userId, deviceId)
-    }
-
     private fun generateSecureToken(): String {
-        val bytes = ByteArray(32)
+        val bytes = ByteArray(64)
         secureRandom.nextBytes(bytes)
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
     }

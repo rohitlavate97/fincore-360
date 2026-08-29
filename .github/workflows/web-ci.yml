@@ -1,0 +1,131 @@
+name: FinCore 360 - Web Portal CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'web/**'
+      - 'infra/docker/web.Dockerfile'
+      - 'infra/docker/nginx.conf'
+      - '.github/workflows/web-ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'web/**'
+      - 'infra/docker/web.Dockerfile'
+      - 'infra/docker/nginx.conf'
+      - '.github/workflows/web-ci.yml'
+
+concurrency:
+  group: web-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── STAGE 1: VALIDATE & TYPECHECK ─────────────────────────────
+  validate:
+    name: "Stage 1 · Validate & Typecheck"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./web
+        run: npm ci
+
+      - name: TypeScript Check
+        working-directory: ./web
+        run: npx tsc --noEmit
+
+  # ── STAGE 2: TEST ─────────────────────────────────────────────
+  test:
+    name: "Stage 2 · Component & Unit Tests"
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./web
+        run: npm ci
+
+      - name: Run Vitest Suite (19 tests)
+        working-directory: ./web
+        run: npm run test
+
+  # ── STAGE 3: BUILD PRODUCTION BUNDLE ──────────────────────────
+  build:
+    name: "Stage 3 · Production Bundle"
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./web
+        run: npm ci
+
+      - name: Build Web Application
+        working-directory: ./web
+        run: npm run build
+
+      - name: Upload Production Assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: fincore-web-dist
+          path: web/dist/
+          retention-days: 14
+
+  # ── STAGE 4: DOCKER CONTAINER SCAN ────────────────────────────
+  container:
+    name: "Stage 4 · Web Container Build & Scan"
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Web Nginx Production Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./infra/docker/web.Dockerfile
+          push: false
+          load: true
+          tags: fincore-web:${{ github.sha }}
+
+      - name: Scan Image with Trivy
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: fincore-web:${{ github.sha }}
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'

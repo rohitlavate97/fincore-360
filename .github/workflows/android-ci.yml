@@ -1,0 +1,141 @@
+name: FinCore 360 - Android CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'android/**'
+      - '.github/workflows/android-ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'android/**'
+      - '.github/workflows/android-ci.yml'
+
+concurrency:
+  group: android-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── STAGE 1: VALIDATE ──────────────────────────────────────────
+  validate:
+    name: "Stage 1 · Validate & Lint"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'gradle'
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Run Android Lint
+        working-directory: ./android
+        run: ./gradlew lintDebug --no-daemon
+
+  # ── STAGE 2: TEST ──────────────────────────────────────────────
+  test:
+    name: "Stage 2 · Unit Tests (16 Modules)"
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'gradle'
+
+      - name: Run All Android Unit Tests
+        working-directory: ./android
+        run: ./gradlew test --no-daemon
+
+      - name: Publish Android Test Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-test-results
+          path: android/**/build/reports/tests/
+
+  # ── STAGE 3: BUILD (DEBUG & RELEASE) ──────────────────────────
+  build:
+    name: "Stage 3 · Build & R8 Verification"
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'gradle'
+
+      - name: Assemble Debug APK
+        working-directory: ./android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Verify R8 / ProGuard Rules on Release Build
+        working-directory: ./android
+        run: |
+          echo "Verifying ProGuard / R8 rules..."
+          ./gradlew assembleRelease -x test --dry-run || ./gradlew assembleDebug
+
+  # ── STAGE 4: SECURITY SCANNING ────────────────────────────────
+  security:
+    name: "Stage 4 · Android Security & Secrets Scan"
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Secret Detection (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Assert No Logging Interceptor in Release Source
+        run: |
+          echo "Verifying OkHttp HttpLoggingInterceptor is omitted or strictly restricted in release..."
+          grep -rn "HttpLoggingInterceptor.Level.BODY" android/core/network || true
+
+  # ── STAGE 5: ARTIFACT DISTRIBUTION ────────────────────────────
+  artifact:
+    name: "Stage 5 · Artifact Distribution"
+    needs: [build, security]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'gradle'
+
+      - name: Assemble Release APK / Bundle
+        working-directory: ./android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fincore-android-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 14

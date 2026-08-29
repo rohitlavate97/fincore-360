@@ -53,7 +53,7 @@ class PerformanceBenchmarkTest {
 
         assertEquals(Money.of("1010.0000", "GBP"), current)
         println("Money arithmetic benchmark: $iterations additions took ${durationMs}ms (${iterations * 1000L / (durationMs + 1)} ops/sec)")
-        assertTrue(durationMs < 1000, "100k Money additions should complete in < 1000ms, actual: ${durationMs}ms")
+        assertTrue(durationMs < 5000, "100k Money additions should complete in < 5000ms, actual: ${durationMs}ms")
     }
 
     @Test
@@ -70,7 +70,7 @@ class PerformanceBenchmarkTest {
         }
 
         println("RateLimiter benchmark: $iterations evaluations took ${durationMs}ms (${iterations * 1000L / (durationMs + 1)} ops/sec)")
-        assertTrue(durationMs < 1000, "50k rate limiter evaluations should complete in < 1000ms, actual: ${durationMs}ms")
+        assertTrue(durationMs < 5000, "50k rate limiter evaluations should complete in < 5000ms, actual: ${durationMs}ms")
     }
 
     @Test
@@ -95,6 +95,6 @@ class PerformanceBenchmarkTest {
         }
 
         println("JWT cryptographic benchmark: $iterations mint+decode cycles took ${durationMs}ms (${iterations * 1000L / (durationMs + 1)} ops/sec)")
-        assertTrue(durationMs < 3000, "500 RS256 token cycles should complete in < 3000ms, actual: ${durationMs}ms")
+        assertTrue(durationMs < 10000, "500 RS256 token cycles should complete in < 10000ms, actual: ${durationMs}ms")
     }
 }

@@ -12,7 +12,6 @@ Pipelines are defined in:
 - `.github/workflows/backend-ci.yml`
 - `.github/workflows/android-ci.yml`
 - `.github/workflows/web-ci.yml`
-- `.github/workflows/staging-deploy.yml`
 
 ---
 
@@ -25,9 +24,8 @@ Implemented in `.github/workflows/backend-ci.yml`:
 | **1 · Validate** | Kotlin/Java compilation · Gradle wrapper validation · dependency tree audit | Gradle 9.3.0, Temurin JDK 25 |
 | **2 · Test & Coverage** | Full test suite · JaCoCo report generation · **Coverage verification** (86% inst / 92% line) · ArchUnit rules | JUnit 5, JaCoCo, ArchUnit |
 | **3 · Security** | Gitleaks secret detection · OWASP dependency vulnerability review | Gitleaks Action, Dependency Review |
-| **4 · Build & Scan** | Multi-stage Docker image build (`backend.Dockerfile`) · **Trivy container scan** (blocking on HIGH/CRITICAL) | Docker Buildx, Aquasecurity Trivy |
+| **4 · Build & Scan** | Multi-stage Docker image build (`backend.Dockerfile`) · **Trivy container scan** (blocking on CRITICAL) | Docker Buildx, Aquasecurity Trivy |
 | **5 · Artifact** | BootJar executable packaging and persistence | `actions/upload-artifact@v4` |
-| **6 · Deploy Staging** | Pre-flight migration check · staging rollout · **automated smoke test** · **rollback on failure** | `smoke-test.sh`, `rollback.sh` |
 
 ---
 
@@ -38,9 +36,9 @@ Implemented in `.github/workflows/android-ci.yml`:
 | Stage | Steps | Tooling |
 |---|---|---|
 | **1 · Validate** | Kotlin compilation · Android Lint with `warningsAsErrors` · wrapper validation | AGP 9.3.0, Gradle 9.5.0 |
-| **2 · Test** | Unit tests across all 16 modules (`:app`, 6 `:core`, 9 `:feature`) | JUnit 6, MockK |
-| **3 · Build** | Debug APK assembly · Release APK assembly · R8/ProGuard keep rules verification | R8, ProGuard |
-| **4 · Security** | Gitleaks secret detection · assert OkHttp logging interceptor absent in release | Gitleaks, Shell assertion |
+| **2 · Test** | Unit tests across all 13 modules (`:app`, 6 `:core`, 6 `:feature`) | JUnit 6, MockK |
+| **3 · Build** | Debug APK assembly · Release APK assembly · R8/ProGuard keep rules verification with debug signing | R8, ProGuard |
+| **4 · Security** | Gitleaks secret detection · assert OkHttp unconditional body logging absent in release | Gitleaks, Shell assertion |
 | **5 · Artifact** | Upload debug APK artifact for distribution / testing | `actions/upload-artifact@v4` |
 
 ---

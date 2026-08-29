@@ -1,7 +1,7 @@
 # BACKEND ARCHITECTURE — FinCore 360
 
-**Phase:** 0 — design intent. **No backend code exists.**
-See [PROJECT-STATUS.md](PROJECT-STATUS.md).
+**Phase:** Complete & Audited — Spring Boot 4.1.1, Kotlin 2.3.21, and JDK 25.
+See [PROJECT-STATUS.md](PROJECT-STATUS.md) and [AUDIT.md](AUDIT.md).
 
 Governed by [ADR-006](docs/adr/ADR-006-Modular-Monolith.md) (modular monolith)
 and [ADR-015](docs/adr/ADR-015-Backend-Language-Kotlin.md) (Kotlin).

@@ -17,7 +17,8 @@ Per [ADR-013](docs/adr/ADR-013-JWT-Auth-Model.md).
 |---|---|
 | Lifetime | 15 minutes |
 | Algorithm | **RS256** — asymmetric; verifiers hold only the public key |
-| Claims | `sub`, `roles`, `jti`, `exp`, `iat`, `iss` |
+| Key Source | External RSA 2048 PEM keypair via environment variables or public RFC 7517 JWKS discovery at `/.well-known/jwks.json` |
+| Claims | `sub`, `roles`, `jti`, `exp`, `iat`, `iss`, `aud` |
 | Android storage | Keystore-backed encrypted store |
 | Web storage | **Memory only.** Never `localStorage`. |
 | Revocable | **No** — bounded to 15 minutes by design |
@@ -27,16 +28,18 @@ Per [ADR-013](docs/adr/ADR-013-JWT-Auth-Model.md).
 | Property | Value |
 |---|---|
 | Format | Opaque random. Not a JWT — carries no readable claims |
-| Lifetime | 7 days |
-| Server storage | Database row, **hashed**, with expiry + user + device |
+| Sliding Lifetime | 7 days per rotation |
+| Absolute Lifetime | **30 days absolute maximum** — rotation capped to prevent infinite sessions |
+| Server storage | Database row, **hashed** (SHA-256), with expiry + user + device |
 | Android storage | Keystore-backed encrypted store |
-| Web storage | `HttpOnly; Secure; SameSite` cookie |
+| Web storage | `HttpOnly; Secure; SameSite` cookie / Authorization payload |
 | Rotation | **On every use** — the presented token is invalidated |
 | Revocable | Yes — delete the row |
 
-**Reuse detection.** Presentation of an already-consumed refresh token indicates
-replay or theft. Response: revoke the entire token family for that device, forcing
-re-login.
+**Reuse detection (M-2).** Presentation of an already-consumed refresh token indicates
+replay or token theft. Response: immediate account-wide revocation of **all** refresh
+tokens for the user across all devices (`revokeAllByUserId`), forcing fresh re-authentication,
+and recording an immutable `TOKEN_THEFT_DETECTED` audit event.
 
 **Known accepted gap.** A locked or deleted user retains access for up to 15
 minutes because a stateless JWT cannot be revoked. Closing this requires a `jti`
@@ -81,9 +84,7 @@ controller. The service layer is the last common chokepoint.
 Admin operations require role **and** explicit permission — role alone is too
 coarse for destructive actions.
 
-The full role → permission matrix is maintained here as the single reference.
-
-`PLANNED — not implemented.`
+The full role → permission matrix is maintained across `SecurityConfig.kt` (deny-by-default fail-closed authorization) and method-level `@PreAuthorize` guards. Verified by `RolePermissionMatrix.test.tsx` and integration tests.
 
 ### Client-side guards are not a security boundary
 

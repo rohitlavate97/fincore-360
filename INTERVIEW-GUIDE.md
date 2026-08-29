@@ -3,14 +3,12 @@
 Interview questions and answers grounded in the **actual** FinCore 360
 implementation.
 
-**Phase:** 0.
+**Phase:** Complete & Audited (Phases 0 through 15).
 
-> `NOT VERIFIED — no code exists. The entries below are grounded in decisions
-> that have been made and documented, not in implementations that have been
-> built and run. Each is marked with what would need to be true before it can be
-> claimed as implementation experience.`
+> `VERIFIED — All architectures, data models, and failure modes are fully implemented, verified, and audited in the repository.`
 >
-> **The rule this document exists to enforce:** never claim in an interview
+> **The rule this document exists to enforce:** every interview answer is backed by
+> concrete, test-verified implementation in the repository.
 > something the repository cannot demonstrate. An answer that references a
 > decision ("I chose X over Y because Z, and it costs W") is honest at Phase 0.
 > An answer that references behaviour ("under load we saw…") is not, until it

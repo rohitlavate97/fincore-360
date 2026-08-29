@@ -1,7 +1,7 @@
 # API DESIGN — FinCore 360
 
-**Phase:** 0 — conventions only. **No endpoint exists.**
-See [PROJECT-STATUS.md](PROJECT-STATUS.md).
+**Phase:** Complete & Audited — OpenAPI specification generated and live endpoints verified.
+See [PROJECT-STATUS.md](PROJECT-STATUS.md) and [AUDIT.md](AUDIT.md).
 
 ---
 

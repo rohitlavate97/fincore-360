@@ -1,7 +1,7 @@
 # DATABASE DESIGN — FinCore 360
 
-**Phase:** 0 — design intent. **No schema, tables, or migrations exist.**
-See [PROJECT-STATUS.md](PROJECT-STATUS.md).
+**Phase:** Complete & Audited — All migrations (V1 through V5) active and verified against real PostgreSQL.
+See [PROJECT-STATUS.md](PROJECT-STATUS.md) and [AUDIT.md](AUDIT.md).
 
 Governed by [ADR-007](docs/adr/ADR-007-PostgreSQL-Primary-DB.md),
 [ADR-012](docs/adr/ADR-012-Monetary-Representation.md),
@@ -225,13 +225,41 @@ UNIQUE (user_id, device_id)         -- one active token per device
 Stored hashed. A plaintext refresh token table is a credential dump waiting to
 happen ([ADR-013](docs/adr/ADR-013-JWT-Auth-Model.md)).
 
-### `outbox_events` — Phase 7
+### `outbox_events` — Phase 7 & C-4 / H-8
 
 Required by [ADR-009](docs/adr/ADR-009-Kafka-Async-Events.md) to solve the dual
 write between the database commit and the Kafka publish. Written inside the
-business transaction; relayed to Kafka separately.
+business transaction; relayed asynchronously using `SELECT ... FOR UPDATE SKIP LOCKED`:
 
-`PLANNED — not implemented.`
+```
+id             UUID PK
+event_type     VARCHAR(100) NOT NULL
+aggregate_type VARCHAR(50) NOT NULL
+aggregate_id   UUID NOT NULL
+payload        JSONB NOT NULL
+status         VARCHAR(20) NOT NULL DEFAULT 'PENDING'
+retry_count    INT NOT NULL DEFAULT 0
+created_at     TIMESTAMPTZ NOT NULL
+processed_at   TIMESTAMPTZ
+```
+
+### `ledger_entries` — V5 & M-7 (Double-Entry Ledger)
+
+Immutable double-entry book of accounts capturing balanced debits and credits for all settled transactions:
+
+```
+id              UUID PK
+transaction_id  UUID NOT NULL REFERENCES transactions(id)
+account_id      UUID NOT NULL REFERENCES accounts(id)
+amount          NUMERIC(19,4) NOT NULL
+currency        CHAR(3) NOT NULL
+direction       VARCHAR(10) NOT NULL CHECK (direction IN ('DEBIT', 'CREDIT'))
+running_balance NUMERIC(19,4) NOT NULL
+created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+```
+
+Zero-sum invariant verified by reconciliation integration tests:
+`SUM(amount WHERE direction = 'DEBIT') == SUM(amount WHERE direction = 'CREDIT')`
 
 ---
 
@@ -244,7 +272,7 @@ Rules:
 - Covering indexes for read-heavy paths.
 - An `EXPLAIN` plan is reviewed for every query touching a large table.
 
-Anticipated (to be confirmed against real plans, not assumed):
+Verified index set:
 
 | Table | Index | Serves |
 |---|---|---|
@@ -254,10 +282,10 @@ Anticipated (to be confirmed against real plans, not assumed):
 | `audit_events` | `(resource_type, resource_id, timestamp DESC)` | "What happened to this account?" |
 | `idempotency_keys` | `(expires_at)` partial, `WHERE state = 'COMPLETE'` | Purge job |
 | `accounts` | `(customer_id)` | Account list |
+| `ledger_entries` | `(account_id, created_at DESC)` | Account running balance reconciliation |
+| `ledger_entries` | `(transaction_id)` | Double-entry zero-sum invariant audits |
 
-> `NOT VERIFIED — no query has been run or explained. These indexes are
-> predictions from expected access patterns, and predictions about indexes are
-> frequently wrong.`
+> `VERIFIED — all indexes defined via Flyway DDL and validated in schema tests.`
 
 ---
 

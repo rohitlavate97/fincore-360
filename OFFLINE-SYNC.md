@@ -1,6 +1,7 @@
 # OFFLINE AND SYNC — FinCore 360
 
-**Phase:** 0 — design intent. **No sync code exists.** Implemented in Phase 6.
+**Phase:** Complete & Audited — Implemented via Room, WorkManager SyncWorker, and ConnectivityManagerNetworkMonitor in Phase 6.
+See [PROJECT-STATUS.md](PROJECT-STATUS.md) and [AUDIT.md](AUDIT.md).
 
 Governed by [ADR-011](docs/adr/ADR-011-Offline-First-Sync.md) and
 [ADR-003](docs/adr/ADR-003-Room-Local-DB.md).

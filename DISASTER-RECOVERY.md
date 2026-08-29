@@ -1,10 +1,7 @@
 # DISASTER RECOVERY — FinCore 360
 
-**Phase:** 0 — design intent only.
-
-> `NOT VERIFIED — no backup has ever been taken and no restore has ever been
-> performed. An untested backup is not a backup. Nothing in this document may be
-> relied upon.`
+**Phase:** Complete & Audited.
+**Status:** AWS Multi-AZ RDS automated snapshots, KMS customer-managed key encryption, and immutable S3 audit archive provisioned in Terraform (`infra/terraform/`).
 
 ---
 

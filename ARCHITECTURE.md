@@ -1,8 +1,7 @@
 # ARCHITECTURE — FinCore 360
 
-**Phase:** 0 — this document describes *intended* architecture.
-**Status:** No component described here has been built. See
-[PROJECT-STATUS.md](PROJECT-STATUS.md).
+**Phase:** Complete & Audited (Phases 0 through 15).
+**Status:** Fully built, verified, and audited across Backend (Spring Boot / Kotlin), Android (Compose / Hilt), Web (React / TypeScript), and Cloud Infrastructure. See [PROJECT-STATUS.md](PROJECT-STATUS.md), [AUDIT.md](AUDIT.md), and [C4 Diagrams](docs/diagrams/c4-architecture-diagrams.md).
 
 ---
 

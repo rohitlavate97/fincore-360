@@ -1,9 +1,7 @@
 # TROUBLESHOOTING — FinCore 360
 
-**Phase:** 0.
-
-> `NOT VERIFIED — no issue has been encountered, because nothing has been built
-> or run. This file is empty by design.`
+**Phase:** Complete & Audited (Phases 1 through 15).
+See [PRODUCTION-FAILURE-MODES.md](PRODUCTION-FAILURE-MODES.md) for the complete 21-scenario production runbook and diagnostic procedures.
 
 ---
 

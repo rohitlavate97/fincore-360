@@ -91,10 +91,26 @@ class ChaosFailureSimulationIntegrationTest {
         verify(atLeast = 3) { outboxRepo.save(event) }
     }
 
+    @Autowired
+    private lateinit var jwtTokenService: com.fincore.identity.application.JwtTokenService
+
     @Test
     @DisplayName("Chaos Test: Unhandled catastrophic exception returns 404/500 with traceId and zero stack trace leak")
     fun catastrophicExceptionHandledGracefully() {
-        mockMvc.perform(get("/api/v1/chaos/non-existent-path-for-exception-check"))
+        val adminUser = com.fincore.identity.domain.User(
+            id = UUID.randomUUID(),
+            username = "admin_chaos_test",
+            email = "admin@bank.test",
+            passwordHash = "hash",
+            roles = "ROLE_ADMIN",
+            status = com.fincore.identity.domain.UserStatus.ACTIVE
+        )
+        val token = jwtTokenService.createAccessToken(adminUser)
+
+        mockMvc.perform(
+            get("/api/v1/chaos/non-existent-path-for-exception-check")
+                .header("Authorization", "Bearer $token")
+        )
             .andExpect(status().isNotFound)
             .andExpect(jsonPath("$.errorCode").exists())
             .andExpect(jsonPath("$.traceId").exists())

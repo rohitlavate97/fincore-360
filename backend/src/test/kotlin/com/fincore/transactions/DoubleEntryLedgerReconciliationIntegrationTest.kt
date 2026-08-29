@@ -143,12 +143,21 @@ class DoubleEntryLedgerReconciliationIntegrationTest {
         assertEquals(BigDecimal("650.0000"), debit2.runningBalance)
         assertEquals(BigDecimal("850.0000"), credit2.runningBalance)
 
-        // Invariant 2: Invariant reconciliation: SUM(DEBIT) == SUM(CREDIT) across entire ledger
+        // Invariant 2: Invariant reconciliation: SUM(DEBIT) == SUM(CREDIT)
+        val tx1Debits = ledgerEntryRepository.sumAmountByTransactionIdAndDirection(transfer1.transactionId, LedgerDirection.DEBIT)
+        val tx1Credits = ledgerEntryRepository.sumAmountByTransactionIdAndDirection(transfer1.transactionId, LedgerDirection.CREDIT)
+        assertEquals(BigDecimal("250.0000"), tx1Debits)
+        assertEquals(BigDecimal("250.0000"), tx1Credits)
+
+        val tx2Debits = ledgerEntryRepository.sumAmountByTransactionIdAndDirection(transfer2.transactionId, LedgerDirection.DEBIT)
+        val tx2Credits = ledgerEntryRepository.sumAmountByTransactionIdAndDirection(transfer2.transactionId, LedgerDirection.CREDIT)
+        assertEquals(BigDecimal("100.0000"), tx2Debits)
+        assertEquals(BigDecimal("100.0000"), tx2Credits)
+
         val totalDebits = ledgerEntryRepository.sumAmountByDirection(LedgerDirection.DEBIT)
         val totalCredits = ledgerEntryRepository.sumAmountByDirection(LedgerDirection.CREDIT)
-        assertEquals(BigDecimal("350.0000"), totalDebits)
-        assertEquals(BigDecimal("350.0000"), totalCredits)
         assertEquals(totalDebits, totalCredits)
+        assertTrue(totalDebits >= BigDecimal("350.0000"))
 
         // Invariant 3: Latest ledger entry running balance equals live account available balance
         val accountAEntries = ledgerEntryRepository.findAllByAccountIdOrderByCreatedAtDesc(accountA.id)

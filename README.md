@@ -11,12 +11,22 @@ Enterprise digital banking **simulation** platform — Kotlin/Jetpack Compose An
 
 | Phase | Description | Status | Verification |
 |---|---|---|---|
-| **Phase 0** | Architecture & ADRs | **Complete** | 20 root architecture docs, 17 ADRs, 0 broken links |
-| **Phase 1** | Backend Foundation | **Complete** | Spring Boot 4.1.1, Flyway, PostgreSQL, 32/32 tests passing |
-| **Phase 2** | Android Foundation | **Complete** | AGP 9.3.0, Compose, Hilt, Room, 16 modules, `app-debug.apk` built |
-| **Phase 3** | Authentication (Backend + Android) | *Next up* | JWT, Keystore, Biometrics, Token Rotation |
+| **Phase 0** | Architecture & ADRs | **Complete** | 20 root architecture docs, 18 ADRs, full threat model |
+| **Phase 1** | Backend Foundation | **Complete** | Spring Boot 4.1.1, Flyway, PostgreSQL, NUMERIC(19,4) precision |
+| **Phase 2** | Android Foundation | **Complete** | AGP 9.3.0, Compose, Hilt, Room, 16 modules |
+| **Phase 3** | Authentication & RBAC | **Complete** | External RSA PEM keys, JWT token rotation, lockout, RBAC matrix |
+| **Phase 4** | Customer & Account Domain | **Complete** | Zero initial balance enforcement, admin cash deposits, account lifecycle |
+| **Phase 5** | Transaction & Idempotency Engine | **Complete** | Pessimistic locking, UUID idempotency with expiry purge, double-entry ledger |
+| **Phase 6** | Outbox Pattern & Event Relay | **Complete** | SKIP LOCKED batch claiming, scheduled relay, atomicity |
+| **Phase 7** | Audit Trail & Compliance | **Complete** | Append-only audit trigger, IP/UserAgent capture, rollback survival |
+| **Phase 8** | Notifications Domain | **Complete** | Deep links, unread counters, transactional outbox dispatch |
+| **Phase 9** | React Web Operations Portal | **Complete** | React 19, TypeScript, role-based nav, single-flight token refresh |
+| **Phase 10** | Security Hardening & Rate Limiting | **Complete** | Deny-by-default, secured Actuator/Swagger, bounded sliding window |
+| **Phase 11** | Infrastructure & CI/CD Pipelines | **Complete** | Docker, Helm, K8s ingress, blocking Trivy scans, real R8 verification |
+| **Phase 12** | Production Simulation & Audits | **Complete** | Chaos failure simulations, double-entry ledger reconciliation |
+| **Audit** | Comprehensive Security Audit Remediation | **Complete** | 100% remediated across C-1..C-6, H-1..H-11, M-1..M-13 |
 
-See [PROJECT-STATUS.md](PROJECT-STATUS.md) for the authoritative, per-item state ledger including all verification criteria and test outputs.
+See [PROJECT-STATUS.md](PROJECT-STATUS.md) and [AUDIT.md](AUDIT.md) for detailed audit findings and verification logs.
 
 ---
 
@@ -24,54 +34,60 @@ See [PROJECT-STATUS.md](PROJECT-STATUS.md) for the authoritative, per-item state
 
 ### Prerequisites
 - **JDK 25** (Temurin 25.0.3 LTS recommended)
+- **Node.js 22** & npm
 - **Android SDK** (API Level 37 compileSdk, API 36 targetSdk)
 
-### 1. Backend Foundation (Phase 1)
+### 1. Backend Service
 ```bash
 cd backend
 ./gradlew test
+./gradlew bootJar
 ```
-*Executes all 32 unit, integration, schema migration, and architecture boundary tests against embedded PostgreSQL.*
+*Executes all unit, integration, double-entry ledger reconciliation, and failure simulation tests against embedded PostgreSQL.*
 
-### 2. Android Foundation (Phase 2)
+### 2. Web Portal
+```bash
+cd web
+npm install
+npm test
+npm run build
+```
+*Runs all Vitest component tests and builds production distribution assets.*
+
+### 3. Android Application
 ```bash
 cd android
 ./gradlew test
 ./gradlew assembleDebug
 ```
-*Compiles all 16 modules (`:app`, 6 `:core`, 9 `:feature`), runs unit test suites, verifies Hilt DI code generation via KSP, and packages `app-debug.apk`.*
+*Compiles all 16 modules, runs unit test suites, and packages APK.*
 
 ---
 
 ## System Architecture
 
 ```
-                      FINCORE 360
-                           │
-      ┌────────────────────┴────────────────────┐
-      │                                         │
-   ANDROID APP                              BACKEND API
-(Jetpack Compose + Hilt)             (Spring Boot 4.1.1 Monolith)
-      │                                         │
-   REST / TLS 1.3                          ┌────┴────┐
-      └───────────────────────────────────►│Postgres │
-                                           └─────────┘
+                                  FINCORE 360
+                                       │
+            ┌──────────────────────────┼──────────────────────────┐
+            │                          │                          │
+       ANDROID APP                 WEB PORTAL                BACKEND API
+ (Jetpack Compose + Hilt)   (React 19 + TypeScript)    (Spring Boot 4.1.1 Monolith)
+            │                          │                          │
+         REST / TLS                 REST / TLS              ┌─────┴─────┐
+            └──────────────────────────┴───────────────────►│PostgreSQL │
+                                                            │ + Outbox  │
+                                                            │ + Ledger  │
+                                                            └───────────┘
 ```
 
-### Android Architecture (Phase 2)
-- **Multi-Module Clean Architecture:** Features depend only on `:core:*` modules, never on peer features.
-- **UI & Design System:** 100% Jetpack Compose with Material 3 dynamic theming (`FinCoreTheme`), edge-to-edge support.
-- **State Model:** Unified `ScreenState<T>` (`Loading`, `Success`, `Empty`, `Error`) with `ScreenStateContainer`.
-- **Dependency Injection:** Dagger Hilt 2.60.1 with KSP 2.3.11.
-- **Networking:** Retrofit 3.0.0, OkHttp 5.5.0, `CorrelationIdInterceptor` injecting `X-Correlation-ID` UUID headers.
-- **Local Persistence:** Room 2.8.4 SQLite database with `SyncMetadataEntity` and `SyncMetadataDao`.
-
-### Backend Architecture (Phase 1)
+### Architecture Highlights
 - **Modular Monolith:** Spring Boot 4.1.1, Kotlin 2.3.21, Gradle 9.3.0, JDK 25.
-- **Database & Migrations:** PostgreSQL schema versioned with Flyway; Hibernate `ddl-auto=validate`.
-- **Data Integrity:** `NUMERIC(19,4)` for all currency fields; JSON string serialization (ADR-012).
-- **Append-Only Audit:** Database trigger enforcing rejection of `UPDATE` and `DELETE` on `audit_events` (ADR-014).
-- **Observability:** Structured JSON logging with correlation IDs propagated across every layer.
+- **Double-Entry Ledger:** Paired DEBIT/CREDIT entries per transaction with running balance snapshots.
+- **Transactional Outbox:** Guaranteed at-least-once asynchronous event propagation using `FOR UPDATE SKIP LOCKED`.
+- **Stateless Authentication:** External RSA 2048 PEM public/private key verification with absolute session lifetimes and account-wide theft revocation.
+- **Idempotency Engine:** First-class `Idempotency-Key` requirement on all mutations with scheduled retention purge.
+- **Fail-Closed Security:** Deny-by-default URL authorization, secured Actuator metrics, spoofing-resistant rate limiting.
 
 ---
 
@@ -79,33 +95,11 @@ cd android
 
 ```
 fincore-360/
-├── android/                        Kotlin · Compose · Clean Architecture (Phase 2 Complete)
-│   ├── app/                        Application entry point, Hilt setup, NavHost
-│   ├── core/                       Shared core modules
-│   │   ├── common/                 ScreenState<T>, ErrorType, MoneyFormatter
-│   │   ├── ui/                     Material 3 design system, ScreenStateContainer
-│   │   ├── network/                Retrofit 3.0, OkHttp 5.5, CorrelationIdInterceptor
-│   │   ├── database/               Room 2.8.4 database, SyncMetadata DAO
-│   │   ├── security/               TokenManager interface, InMemoryTokenManager
-│   │   └── testing/                MainDispatcherRule (JUnit 5 coroutine runner)
-│   ├── feature/                    9 feature module stubs (isolated, depend on :core)
-│   │   ├── auth/                   Authentication flow
-│   │   ├── dashboard/              Dashboard & quick actions
-│   │   ├── accounts/               Account list & balance details
-│   │   ├── transactions/           Transaction ledger & history
-│   │   ├── transfer/               Fund transfer flow
-│   │   ├── beneficiaries/          Payee / beneficiary management
-│   │   ├── cards/                  Card management & controls
-│   │   ├── notifications/          Notification center
-│   │   └── profile/                Settings & user preferences
-│   └── gradle/                     libs.versions.toml (central version catalog)
-├── backend/                        Kotlin · Spring Boot modular monolith (Phase 1 Complete)
-│   ├── src/main/kotlin/            Application services, domain model, Flyway migrations
-│   └── src/test/kotlin/            32 JUnit tests (context, schema, money, security)
-├── web/                            React · TypeScript admin portal (Phase 9 Planned)
-├── infra/                          Docker Compose, Kubernetes, Helm, Terraform
-└── docs/                           Architecture specs & ADR records
-    └── adr/                        17 Architecture Decision Records
+├── android/                        Kotlin · Compose · Clean Architecture (16 modules)
+├── backend/                        Kotlin · Spring Boot 4 modular monolith & domain services
+├── web/                            React 19 · TypeScript · Vite operations & compliance portal
+├── infra/                          Docker, Kubernetes, Helm charts, Nginx reverse proxy
+└── docs/                           Architecture specs, threat models, and 18 ADRs
 ```
 
 ---

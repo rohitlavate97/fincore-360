@@ -90,17 +90,16 @@ payload        event-specific data
   Phase 7 begins.
 - `FM-BACKEND-003` covers Kafka unavailability behaviour.
 
+## Current Implementation Status & Evolutionary Architecture
+
+- **Outbox Pattern Implemented:** The transactional outbox pattern is fully operational via PostgreSQL table `outbox_events` (`V3__outbox_events.sql`) and `OutboxRelayScheduler` running `SELECT ... FOR UPDATE SKIP LOCKED` batch claiming every 2000ms. All balance mutations and domain events (`TRANSFER_INITIATED`, `TRANSFER_COMPLETED`, `TRANSFER_FAILED`) are committed atomically within the primary ACID transaction.
+- **In-Process Relay & Broker Decoupling:** In the current single-cluster topology, events are relayed to Spring's event pipeline, notification service, and audit log repository.
+- **Target Architecture:** For multi-service event distribution, external Kafka brokers can be attached to the outbox relay publisher without modifying transactional domain boundaries.
+
 ## Verification
 
-- Integration test: consumer receives the same event twice; the resulting state
-  is identical (idempotency proven, not assumed).
-- Failure test: Kafka stopped mid-transfer — the transfer still commits and the
-  outbox retains the event for later relay.
-- Ordering test: multiple events for one account arrive in order.
-
-> `NOT VERIFIED — Kafka is not integrated, no topics or consumers exist, and the
-> outbox relay is unimplemented. The dual-write hazard above is identified, not
-> mitigated.`
+- Integration test: OutboxEventRepository test verifies `claimPendingBatch` with `SKIP LOCKED` across concurrent transactions.
+- Simulation tests: `ChaosFailureSimulationIntegrationTest` and `ProductionSimulationIntegrationTest` verify complete outbox event propagation under simulated failures.
 
 ## Interview notes
 

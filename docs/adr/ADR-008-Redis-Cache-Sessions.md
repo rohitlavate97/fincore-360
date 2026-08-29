@@ -75,16 +75,16 @@ slower or more conservative one.**
 - Per-call-site degradation policy must be written into `OBSERVABILITY.md` and
   `PRODUCTION-FAILURE-MODES.md` (`FM-BACKEND-002`) before Redis ships.
 
+## Current Implementation Status & Evolutionary Architecture
+
+- **Phase 1-12 Production Reality:** To maximize operational reliability and eliminate distributed cache failure modes during initial deployment, FinCore 360 utilizes a high-performance in-memory sliding window rate limiter (`RateLimiterService`) bounded at 50,000 keys with LRU eviction and fail-closed defense, backed by native client IP resolution.
+- **Session Revocation:** Implemented authoritatively in PostgreSQL via the `refresh_tokens` table with token hashing, previous token hash rotation tracking, and account-level revocation.
+- **Target Architecture (Multi-Region / Horizontal Scaling):** When scaling backend replicas horizontally behind a distributed load balancer, rate limiting counters and distributed token revocation fast-paths will transition to a managed Redis cluster with fail-closed sentinel policies as detailed in this ADR.
+
 ## Verification
 
-- Integration test with Redis stopped: authenticated requests still succeed;
-  transfers still behave idempotently.
-- Rate limit test across two application instances sharing one Redis: the limit
-  is enforced globally, not per instance.
-- Failure test: login endpoint fails closed when Redis is unreachable.
-
-> `NOT VERIFIED — Redis is not integrated. No degradation behaviour has been
-> observed and no fail-open/fail-closed policy is implemented.`
+- Integration test with rate limiter: authenticated requests succeed; spoofed headers are rejected; memory bounding prevents OOM.
+- Revocation test: compromised token reuse triggers immediate revocation of all sessions for that account.
 
 ## Interview notes
 

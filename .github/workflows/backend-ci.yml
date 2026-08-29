@@ -131,10 +131,10 @@ jobs:
         with:
           image-ref: fincore-backend:${{ github.sha }}
           format: 'table'
-          exit-code: '0'
+          exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
+          severity: 'CRITICAL'
 
   # ── STAGE 5: ARTIFACT PACKAGING ───────────────────────────────
   artifact:

@@ -89,8 +89,8 @@ jobs:
       - name: Verify R8 / ProGuard Rules on Release Build
         working-directory: ./android
         run: |
-          echo "Verifying ProGuard / R8 rules..."
-          ./gradlew assembleRelease -x test --dry-run || ./gradlew assembleDebug
+          echo "Verifying ProGuard / R8 rules on release build..."
+          ./gradlew assembleRelease -x test --no-daemon
 
   # ── STAGE 4: SECURITY SCANNING ────────────────────────────────
   security:

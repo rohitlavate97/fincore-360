@@ -108,10 +108,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Assert No Logging Interceptor in Release Source
+      - name: Assert No Unconditional Body Logging in Release Source
         run: |
-          echo "Verifying OkHttp HttpLoggingInterceptor is omitted or strictly restricted in release..."
-          grep -rn "HttpLoggingInterceptor.Level.BODY" android/core/network || true
+          echo "Verifying OkHttp HttpLoggingInterceptor is strictly conditional on ENABLE_NETWORK_LOGS..."
+          grep -rn "ENABLE_NETWORK_LOGS" android/core/network
+          ! grep -rn "level = HttpLoggingInterceptor.Level.BODY$" android/core/network
 
   # ── STAGE 5: ARTIFACT DISTRIBUTION ────────────────────────────
   artifact:

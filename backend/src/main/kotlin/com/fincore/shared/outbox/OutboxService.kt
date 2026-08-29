@@ -43,10 +43,7 @@ class OutboxService(
 
     @Transactional
     fun relayPendingEvents(batchSize: Int = 50): Int {
-        val pending = outboxEventRepository.findByStatusOrderByCreatedAtAsc(
-            OutboxStatus.PENDING,
-            PageRequest.of(0, batchSize)
-        )
+        val pending = outboxEventRepository.claimPendingBatch(batchSize)
 
         if (pending.isEmpty()) return 0
 

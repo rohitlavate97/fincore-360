@@ -83,3 +83,9 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+fincore:
+  outbox:
+    relay:
+      enabled: ${FINCORE_OUTBOX_RELAY_ENABLED:true}
+      interval-ms: ${FINCORE_OUTBOX_RELAY_INTERVAL_MS:2000}

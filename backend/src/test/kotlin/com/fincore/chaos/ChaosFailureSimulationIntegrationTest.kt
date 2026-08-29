@@ -65,7 +65,7 @@ class ChaosFailureSimulationIntegrationTest {
         )
 
         every {
-            outboxRepo.findByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING, PageRequest.of(0, 50))
+            outboxRepo.claimPendingBatch(50)
         } returns listOf(event)
 
         every { outboxRepo.save(any()) } answers { firstArg() }

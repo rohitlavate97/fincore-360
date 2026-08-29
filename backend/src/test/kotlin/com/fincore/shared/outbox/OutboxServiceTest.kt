@@ -58,7 +58,7 @@ class OutboxServiceTest {
         )
 
         every {
-            outboxEventRepository.findByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING, PageRequest.of(0, 50))
+            outboxEventRepository.claimPendingBatch(50)
         } returns listOf(event)
 
         every { outboxEventRepository.save(any()) } answers { firstArg() }

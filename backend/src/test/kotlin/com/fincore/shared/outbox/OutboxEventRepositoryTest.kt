@@ -46,6 +46,10 @@ class OutboxEventRepositoryTest {
         val pending = outboxEventRepository.findByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING, PageRequest.of(0, 10))
         assertNotNull(pending.find { it.id == saved.id })
 
+        val claimed = outboxEventRepository.claimPendingBatch(10)
+        assertNotNull(claimed.find { it.id == saved.id })
+        assertEquals(1L, outboxEventRepository.countByStatus(OutboxStatus.PENDING))
+
         saved.markPublished()
         outboxEventRepository.save(saved)
 

@@ -267,7 +267,7 @@ class ProductionSimulationIntegrationTest {
         )
 
         every {
-            outboxRepo.findByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING, PageRequest.of(0, 50))
+            outboxRepo.claimPendingBatch(50)
         } returns listOf(outboxEvent)
         every { outboxRepo.save(any()) } answers { firstArg() }
         every { failingPublisher.publish(any()) } throws RuntimeException("Chaos: Simulated Kafka Partition Outage")

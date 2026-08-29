@@ -39,7 +39,5 @@ include(":feature:dashboard")
 include(":feature:accounts")
 include(":feature:transactions")
 include(":feature:transfer")
-include(":feature:beneficiaries")
-include(":feature:cards")
 include(":feature:notifications")
-include(":feature:profile")
+

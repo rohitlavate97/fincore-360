@@ -178,6 +178,7 @@ class ProductionSimulationIntegrationTest {
         for (i in 1..15) {
             mockMvc.perform(
                 post("/api/v1/auth/login")
+                    .with { it.remoteAddr = ipAddress; it }
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"username":"attacker","password":"password123"}""")
                     .header("X-Forwarded-For", ipAddress)
@@ -187,6 +188,7 @@ class ProductionSimulationIntegrationTest {
         // Must return 429 TOO_MANY_REQUESTS with Retry-After header
         mockMvc.perform(
             post("/api/v1/auth/login")
+                .with { it.remoteAddr = ipAddress; it }
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"username":"attacker","password":"password123"}""")
                 .header("X-Forwarded-For", ipAddress)

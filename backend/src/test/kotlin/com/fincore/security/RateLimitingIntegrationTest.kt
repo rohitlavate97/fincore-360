@@ -48,26 +48,53 @@ class RateLimitingIntegrationTest {
         val clientIp = "198.51.100.25"
         val payload = """{"username":"user_attacker","password":"bad_password"}"""
 
-        // Fire 5 requests (up to limit)
+        // Fire requests up to limit
         for (i in 1..RateLimitingFilter.LOGIN_LIMIT) {
             mockMvc.perform(
                 post("/api/v1/auth/login")
-                    .header("X-Forwarded-For", clientIp)
+                    .with { it.remoteAddr = clientIp; it }
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(payload)
             )
-            // Either 401 (invalid credentials) or another auth status, but not 429
         }
 
-        // 6th request must be rejected with 429 TOO_MANY_REQUESTS
+        // Limit exceeded request must be rejected with 429 TOO_MANY_REQUESTS
         mockMvc.perform(
             post("/api/v1/auth/login")
-                .header("X-Forwarded-For", clientIp)
+                .with { it.remoteAddr = clientIp; it }
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload)
         )
             .andExpect(status().isTooManyRequests)
             .andExpect(header().exists("Retry-After"))
+            .andExpect(jsonPath("$.errorCode").value("RATE_LIMIT_EXCEEDED"))
+    }
+
+    @Test
+    @DisplayName("C-6: Spoofed X-Forwarded-For header does not bypass rate limiting")
+    fun spoofedXForwardedForCannotBypassRateLimit() {
+        val remoteIp = "192.0.2.1"
+        val payload = """{"username":"user_attacker","password":"bad_password"}"""
+
+        for (i in 1..RateLimitingFilter.LOGIN_LIMIT) {
+            mockMvc.perform(
+                post("/api/v1/auth/login")
+                    .with { it.remoteAddr = remoteIp; it }
+                    .header("X-Forwarded-For", "spoofed-$i.attacker.org")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(payload)
+            )
+        }
+
+        // An attacker rotating X-Forwarded-For still hits 429 based on resolved remoteAddr
+        mockMvc.perform(
+            post("/api/v1/auth/login")
+                .with { it.remoteAddr = remoteIp; it }
+                .header("X-Forwarded-For", "spoofed-new-identity.attacker.org")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload)
+        )
+            .andExpect(status().isTooManyRequests)
             .andExpect(jsonPath("$.errorCode").value("RATE_LIMIT_EXCEEDED"))
     }
 }

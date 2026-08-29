@@ -72,4 +72,7 @@ class Transaction(
         status = newStatus
         updatedAt = Instant.now()
     }
+
+    fun amountMoney(): com.fincore.shared.money.Money =
+        com.fincore.shared.money.Money.of(amount, currency)
 }

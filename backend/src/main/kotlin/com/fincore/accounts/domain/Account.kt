@@ -59,4 +59,10 @@ class Account(
     fun isFrozen(): Boolean = status == AccountStatus.FROZEN
 
     fun isClosed(): Boolean = status == AccountStatus.CLOSED
+
+    fun availableBalanceMoney(): com.fincore.shared.money.Money =
+        com.fincore.shared.money.Money.of(availableBalance, currency)
+
+    fun ledgerBalanceMoney(): com.fincore.shared.money.Money =
+        com.fincore.shared.money.Money.of(ledgerBalance, currency)
 }

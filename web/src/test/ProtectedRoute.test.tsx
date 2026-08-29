@@ -1,24 +1,18 @@
-import React from 'react'
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
-import { AuthProvider, useAuth } from '../context/AuthContext'
+import { AuthProvider } from '../context/AuthContext'
 import { ProtectedRoute } from '../components/auth/ProtectedRoute'
-import { Role } from '../types/auth'
+import { Role, UserSession } from '../types/auth'
 
-const TestConsumer: React.FC<{ targetRole?: Role }> = ({ targetRole }) => {
-  const { mockLoginAs } = useAuth()
-  const calledRef = React.useRef(false)
-
-  React.useEffect(() => {
-    if (targetRole && !calledRef.current) {
-      calledRef.current = true
-      mockLoginAs(targetRole)
-    }
-  }, [targetRole, mockLoginAs])
-
-  return <div>Loaded Test Consumer</div>
-}
+const createMockSession = (role: Role): UserSession => ({
+  userId: `user-${role.toLowerCase()}`,
+  username: `${role.toLowerCase()}_user`,
+  roles: [role],
+  customerId: `cust-${role.toLowerCase()}`,
+  accessToken: `mock-token-${role}`,
+  refreshToken: `mock-refresh-${role}`,
+})
 
 describe('ProtectedRoute & RBAC Enforcement', () => {
   it('redirects unauthenticated users to /login', () => {
@@ -47,8 +41,7 @@ describe('ProtectedRoute & RBAC Enforcement', () => {
   it('permits authorized role to view screen', async () => {
     render(
       <MemoryRouter initialEntries={['/portal']}>
-        <AuthProvider>
-          <TestConsumer targetRole="ADMIN" />
+        <AuthProvider initialSession={createMockSession('ADMIN')}>
           <Routes>
             <Route
               path="/portal"
@@ -69,8 +62,7 @@ describe('ProtectedRoute & RBAC Enforcement', () => {
   it('blocks unauthorized role with 403 Access Denied screen', async () => {
     render(
       <MemoryRouter initialEntries={['/audit-trail']}>
-        <AuthProvider>
-          <TestConsumer targetRole="CUSTOMER" />
+        <AuthProvider initialSession={createMockSession('CUSTOMER')}>
           <Routes>
             <Route
               path="/audit-trail"

@@ -10,10 +10,18 @@ interface AuthContextType {
   logout: () => Promise<void>
   hasRole: (role: Role) => boolean
   hasAnyRole: (roles: Role[]) => boolean
-  mockLoginAs: (role: Role, username?: string) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+function getDeviceId(): string {
+  let id = localStorage.getItem('fincore_device_id')
+  if (!id) {
+    id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `web-device-${Date.now()}`
+    localStorage.setItem('fincore_device_id', id)
+  }
+  return id
+}
 
 function parseJwt(token: string): DecodedToken {
   try {
@@ -31,11 +39,21 @@ function parseJwt(token: string): DecodedToken {
   }
 }
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserSession | null>(null)
-  const [isLoading, setIsLoading] = useState<boolean>(true)
+export const AuthProvider: React.FC<{
+  children: React.ReactNode
+  initialSession?: UserSession | null
+}> = ({ children, initialSession = null }) => {
+  const [user, setUser] = useState<UserSession | null>(initialSession)
+  const [isLoading, setIsLoading] = useState<boolean>(!initialSession)
 
   useEffect(() => {
+    if (initialSession) {
+      setUser(initialSession)
+      apiClient.setToken(initialSession.accessToken)
+      setIsLoading(false)
+      return
+    }
+
     const stored = sessionStorage.getItem('fincore_session')
     if (stored) {
       try {
@@ -47,12 +65,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
     setIsLoading(false)
+  }, [initialSession])
+
+  // Listen to session expiry events dispatched by apiClient single-flight refresh
+  useEffect(() => {
+    const onExpired = () => {
+      setUser(null)
+      apiClient.setToken(null)
+    }
+    window.addEventListener('fincore:auth:expired', onExpired)
+    return () => window.removeEventListener('fincore:auth:expired', onExpired)
   }, [])
 
   const login = useCallback(async (username: string, password: string): Promise<void> => {
+    // H-2: Send stable deviceId in login payload required by backend contract
     const response = await apiClient.post<AuthResponse>('/api/v1/auth/login', {
       username,
       password,
+      deviceId: getDeviceId(),
     })
 
     const decoded = parseJwt(response.accessToken)
@@ -72,20 +102,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setUser(session)
     apiClient.setToken(response.accessToken)
-    sessionStorage.setItem('fincore_session', JSON.stringify(session))
-  }, [])
-
-  const mockLoginAs = useCallback((role: Role, username = `${role.toLowerCase()}_user`) => {
-    const session: UserSession = {
-      userId: `user-${role.toLowerCase()}-uuid`,
-      username,
-      roles: [role],
-      customerId: `cust-${role.toLowerCase()}-uuid`,
-      accessToken: `mock-token-for-${role}`,
-      refreshToken: `mock-refresh-${role}`,
-    }
-    setUser(session)
-    apiClient.setToken(session.accessToken)
     sessionStorage.setItem('fincore_session', JSON.stringify(session))
   }, [])
 
@@ -129,7 +145,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         hasRole,
         hasAnyRole,
-        mockLoginAs,
       }}
     >
       {children}

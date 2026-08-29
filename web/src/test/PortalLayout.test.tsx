@@ -1,31 +1,24 @@
-import React from 'react'
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
-import { AuthProvider, useAuth } from '../context/AuthContext'
+import { AuthProvider } from '../context/AuthContext'
 import { PortalLayout } from '../components/layout/PortalLayout'
-import { Role } from '../types/auth'
+import { Role, UserSession } from '../types/auth'
 
-const TestRoleSetter: React.FC<{ role: Role }> = ({ role }) => {
-  const { mockLoginAs } = useAuth()
-  const initialized = React.useRef(false)
-
-  React.useEffect(() => {
-    if (!initialized.current) {
-      initialized.current = true
-      mockLoginAs(role)
-    }
-  }, [role, mockLoginAs])
-
-  return <div>Role set to {role}</div>
-}
+const createMockSession = (role: Role): UserSession => ({
+  userId: `user-${role.toLowerCase()}`,
+  username: `${role.toLowerCase()}_user`,
+  roles: [role],
+  customerId: `cust-${role.toLowerCase()}`,
+  accessToken: `mock-token-${role}`,
+  refreshToken: `mock-refresh-${role}`,
+})
 
 describe('PortalLayout Dynamic Role Navigation Filtering', () => {
   it('displays only Auditor-permitted navigation items for AUDITOR role', async () => {
     render(
       <MemoryRouter initialEntries={['/']}>
-        <AuthProvider>
-          <TestRoleSetter role="AUDITOR" />
+        <AuthProvider initialSession={createMockSession('AUDITOR')}>
           <Routes>
             <Route element={<PortalLayout />}>
               <Route path="/" element={<div>Dashboard</div>} />
@@ -46,8 +39,7 @@ describe('PortalLayout Dynamic Role Navigation Filtering', () => {
   it('displays only Operations-permitted navigation items for OPERATIONS role', async () => {
     render(
       <MemoryRouter initialEntries={['/']}>
-        <AuthProvider>
-          <TestRoleSetter role="OPERATIONS" />
+        <AuthProvider initialSession={createMockSession('OPERATIONS')}>
           <Routes>
             <Route element={<PortalLayout />}>
               <Route path="/" element={<div>Dashboard</div>} />
@@ -67,8 +59,7 @@ describe('PortalLayout Dynamic Role Navigation Filtering', () => {
   it('displays all navigation items for ADMIN role', async () => {
     render(
       <MemoryRouter initialEntries={['/']}>
-        <AuthProvider>
-          <TestRoleSetter role="ADMIN" />
+        <AuthProvider initialSession={createMockSession('ADMIN')}>
           <Routes>
             <Route element={<PortalLayout />}>
               <Route path="/" element={<div>Dashboard</div>} />

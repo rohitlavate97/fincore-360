@@ -65,4 +65,70 @@ describe('ApiClient', () => {
       message: 'User does not possess ROLE_ADMIN',
     })
   })
+
+  it('single-flights 401 token refresh across concurrent requests without duplicate refreshes (H-3)', async () => {
+    let refreshCalls = 0
+    sessionStorage.setItem(
+      'fincore_session',
+      JSON.stringify({
+        accessToken: 'expired-token',
+        refreshToken: 'valid-refresh-token',
+        userId: 'user-1',
+        username: 'alice',
+        roles: ['CUSTOMER'],
+      })
+    )
+    apiClient.setToken('expired-token')
+
+    global.fetch = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/v1/auth/refresh') {
+        refreshCalls++
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({
+              accessToken: 'fresh-access-token',
+              refreshToken: 'fresh-refresh-token',
+            }),
+        })
+      }
+
+      const headers = new Headers(init?.headers)
+      const auth = headers.get('Authorization')
+
+      // First attempt with expired token fails with 401
+      if (auth === 'Bearer expired-token') {
+        return Promise.resolve({
+          ok: false,
+          status: 401,
+          json: () => Promise.resolve({ errorCode: 'AUTHENTICATION_REQUIRED', message: 'Expired' }),
+        })
+      }
+
+      // Replayed attempt with fresh token succeeds
+      if (auth === 'Bearer fresh-access-token') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ data: 'replayed-success' }),
+        })
+      }
+
+      return Promise.resolve({ ok: false, status: 500 })
+    })
+
+    // Three concurrent requests hit 401 simultaneously
+    const [res1, res2, res3] = await Promise.all([
+      apiClient.get<{ data: string }>('/api/v1/accounts'),
+      apiClient.get<{ data: string }>('/api/v1/transfers'),
+      apiClient.get<{ data: string }>('/api/v1/transactions'),
+    ])
+
+    expect(res1.data).toBe('replayed-success')
+    expect(res2.data).toBe('replayed-success')
+    expect(res3.data).toBe('replayed-success')
+    expect(refreshCalls).toBe(1)
+  })
 })
+

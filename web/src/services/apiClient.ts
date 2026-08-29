@@ -6,6 +6,50 @@ export interface ApiError {
   status?: number
 }
 
+let refreshPromise: Promise<string> | null = null
+
+/**
+ * Single-flight token refresh promise gate (H-3).
+ * Collapses concurrent 401s into a single POST /api/v1/auth/refresh call,
+ * preventing refresh token reuse detection trips (FM-BACKEND-005).
+ */
+export async function getRefreshedToken(): Promise<string> {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      try {
+        const stored = sessionStorage.getItem('fincore_session')
+        if (!stored) throw new Error('No active session')
+        const session = JSON.parse(stored)
+        if (!session.refreshToken) throw new Error('No refresh token')
+
+        const res = await fetch('/api/v1/auth/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: session.refreshToken }),
+        })
+
+        if (!res.ok) {
+          sessionStorage.removeItem('fincore_session')
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('fincore:auth:expired'))
+          }
+          throw new Error('Refresh token rejected or expired')
+        }
+
+        const data = await res.json()
+        session.accessToken = data.accessToken
+        session.refreshToken = data.refreshToken
+        sessionStorage.setItem('fincore_session', JSON.stringify(session))
+        apiClient.setToken(data.accessToken)
+        return data.accessToken as string
+      } finally {
+        refreshPromise = null
+      }
+    })()
+  }
+  return refreshPromise
+}
+
 class ApiClient {
   private token: string | null = null
 
@@ -26,7 +70,8 @@ class ApiClient {
 
   async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    isRetry = false
   ): Promise<T> {
     const headers = new Headers(options.headers || {})
 
@@ -46,6 +91,17 @@ class ApiClient {
       ...options,
       headers,
     })
+
+    // Single-flight 401 handling: refresh token and replay original request once (H-3)
+    if (response.status === 401 && !isRetry && !endpoint.includes('/api/v1/auth/')) {
+      try {
+        const newAccessToken = await getRefreshedToken()
+        headers.set('Authorization', `Bearer ${newAccessToken}`)
+        return await this.request<T>(endpoint, { ...options, headers }, true)
+      } catch {
+        // Refresh failed, continue to throw original 401
+      }
+    }
 
     if (!response.ok) {
       let errorBody: ApiError

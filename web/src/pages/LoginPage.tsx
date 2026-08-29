@@ -1,13 +1,12 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Role } from '../types/auth'
 import { ShieldCheck, LogIn, AlertCircle } from 'lucide-react'
 import { ApiError } from '../services/apiClient'
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate()
-  const { login, mockLoginAs } = useAuth()
+  const { login } = useAuth()
 
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -28,11 +27,6 @@ export const LoginPage: React.FC = () => {
     } finally {
       setIsSubmitting(false)
     }
-  }
-
-  const handleRoleQuickLogin = (role: Role) => {
-    mockLoginAs(role)
-    navigate('/')
   }
 
   return (
@@ -172,34 +166,6 @@ export const LoginPage: React.FC = () => {
             {isSubmitting ? 'Authenticating...' : 'Sign In to Portal'}
           </button>
         </form>
-
-        <div style={{ marginTop: '2rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
-          <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem', textAlign: 'center' }}>
-            Direct Role Simulation (Testing & Review)
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-            {(['ADMIN', 'OPERATIONS', 'AUDITOR', 'SUPPORT_AGENT', 'CUSTOMER'] as Role[]).map((r) => (
-              <button
-                key={r}
-                type="button"
-                data-testid={`quick-login-${r.toLowerCase()}`}
-                onClick={() => handleRoleQuickLogin(r)}
-                style={{
-                  padding: '0.4rem 0.5rem',
-                  backgroundColor: '#f1f5f9',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '4px',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  color: '#334155',
-                  cursor: 'pointer',
-                }}
-              >
-                Log in as {r}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   )

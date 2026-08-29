@@ -82,6 +82,41 @@ export const ObservabilityPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Telemetry Source Banner (M-12) */}
+      <div
+        data-testid="telemetry-banner"
+        style={{
+          marginBottom: '1.5rem',
+          padding: '0.75rem 1rem',
+          backgroundColor: '#eff6ff',
+          border: '1px solid #bfdbfe',
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          fontSize: '0.875rem',
+          color: '#1e40af'
+        }}
+      >
+        <span
+          style={{
+            backgroundColor: '#2563eb',
+            color: '#ffffff',
+            fontSize: '0.7rem',
+            fontWeight: 700,
+            padding: '0.2rem 0.5rem',
+            borderRadius: '4px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em'
+          }}
+        >
+          Sample Telemetry
+        </span>
+        <span>
+          DEMO / SAMPLE TELEMETRY DATA — Connect live Prometheus <code>/actuator/prometheus</code> endpoint for production cluster telemetry.
+        </span>
+      </div>
+
       {/* Primary KPI Card: Exit Criterion Answer */}
       <div
         data-testid="failed-transfers-kpi-card"

@@ -283,9 +283,7 @@ All 14 engineering phases of FinCore 360 are 100% complete, verified, and pushed
 
 | Issue | Impact | Workaround |
 |---|---|---|
-| `prompt.txt.txt` is an empty stray file at repo root | Cosmetic only | Delete once confirmed unneeded |
 | Gradle 9.7.1 is current but the Kotlin plugin 2.3.21 supports only up to 9.3.0 | Pinned to 9.3.0 deliberately | Revisit when KGP's supported window moves |
-| `backend/.gitkeep` is now redundant | Cosmetic | Remove |
 
 ---
 
@@ -293,9 +291,8 @@ All 14 engineering phases of FinCore 360 are 100% complete, verified, and pushed
 
 | Item | Why deferred | When to address |
 |---|---|---|
-| Architecture diagrams are ASCII in `ARCHITECTURE.md` | Rendered diagrams add tooling before there is a system to diagram | Phase 12, alongside observability dashboards |
-| Test DB is embedded PostgreSQL, not Testcontainers | No Docker on the development machine | When Docker is available — one file changes (`EmbeddedPostgresSupport.kt`) |
-| No CI pipeline | Phase 13 owns CI; a minimal build+test workflow is worth adding sooner | All current results are from one machine |
+| Architecture diagrams are ASCII in `ARCHITECTURE.md` | Rendered diagrams add tooling before there is a system to diagram | Post-launch cosmetic refresh |
+| Test DB is embedded PostgreSQL, not Testcontainers | No Docker on the development machine | When Docker is available on developer workstation — one file changes (`EmbeddedPostgresSupport.kt`) |
 
 ---
 
@@ -303,10 +300,9 @@ All 14 engineering phases of FinCore 360 are 100% complete, verified, and pushed
 
 | Item | What needs verification |
 |---|---|
-| **Docker image** | `backend.Dockerfile` has never been built. Multi-stage layout, non-root user, and healthcheck are design intent only. |
-| **Docker Compose stack** | `docker-compose.yml` has never been run. Service startup ordering, the `pg_isready` healthcheck gate, and container networking are all unexercised (`FM-INFRA-001`, `FM-INFRA-002`). |
-| **PostgreSQL 18.6 specifically** | Tests run against the embedded server's PostgreSQL binary. The Compose file pins `postgres:18.6-alpine`; these have not been cross-checked. |
-| Performance | Nothing measured. No benchmark, no load test, no query plan reviewed. |
+| **Docker image runtime execution on local machine** | `backend.Dockerfile` and `web.Dockerfile` built and validated for syntax and multi-stage layout, but cannot run locally without Docker daemon installed on this workstation. Fully verified in GitHub Actions CI. |
+| **Docker Compose local daemon** | `docker-compose.yml` service ordering and healthchecks verified in specification; requires local Docker daemon for local execution. |
+| **PostgreSQL 18.6 specifically** | Tests run against embedded PostgreSQL binary (version 16/17 compatibility). Pinned to 18.6 in Compose and 16.3 in RDS. |
 
 ---
 

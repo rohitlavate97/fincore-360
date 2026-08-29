@@ -56,3 +56,8 @@ class IdempotencyInProgressException(
 class IdempotencyKeyRequiredException(
     message: String = "Idempotency-Key header is required"
 ) : DomainException(ErrorCode.IDEMPOTENCY_KEY_REQUIRED, HttpStatus.BAD_REQUEST, message)
+
+class InitialDepositNotAllowedException(
+    message: String = "Customer accounts must be opened with zero initial deposit. Fund accounts via inbound transfer or teller deposit."
+) : DomainException(ErrorCode.VALIDATION_FAILED, HttpStatus.UNPROCESSABLE_ENTITY, message)
+

@@ -64,6 +64,8 @@ class AccountControllerIntegrationTest {
     private lateinit var customer: Customer
     private lateinit var user: User
     private lateinit var token: String
+    private lateinit var adminUser: User
+    private lateinit var adminToken: String
 
     @BeforeEach
     fun setupCustomerAndUser() {
@@ -87,6 +89,17 @@ class AccountControllerIntegrationTest {
         )
 
         token = jwtTokenService.createAccessToken(user)
+
+        adminUser = userRepository.save(
+            User(
+                username = "admin_${UUID.randomUUID().toString().take(8)}",
+                email = "admin_${UUID.randomUUID().toString().take(8)}@bank.test",
+                passwordHash = "passwordHash",
+                roles = Role.ADMIN.authority,
+                status = UserStatus.ACTIVE
+            )
+        )
+        adminToken = jwtTokenService.createAccessToken(adminUser)
     }
 
     @Test
@@ -98,12 +111,12 @@ class AccountControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/accounts creates account, and GET /api/v1/accounts returns paginated list")
+    @DisplayName("POST /api/v1/accounts creates account with zero balance, and GET /api/v1/accounts returns paginated list")
     fun createAndListAccounts() {
         val request = CreateAccountRequest(
             accountType = AccountType.CHECKING,
             currency = "GBP",
-            initialDeposit = BigDecimal("500.0000")
+            initialDeposit = BigDecimal.ZERO
         )
 
         val createResult = mockMvc.perform(
@@ -116,8 +129,8 @@ class AccountControllerIntegrationTest {
             .andExpect(header().exists("Location"))
             .andExpect(jsonPath("$.accountType").value("CHECKING"))
             .andExpect(jsonPath("$.currency").value("GBP"))
-            .andExpect(jsonPath("$.availableBalance").value("500.0000"))
-            .andExpect(jsonPath("$.ledgerBalance").value("500.0000"))
+            .andExpect(jsonPath("$.availableBalance").value("0.0000"))
+            .andExpect(jsonPath("$.ledgerBalance").value("0.0000"))
             .andExpect(jsonPath("$.status").value("ACTIVE"))
             .andReturn()
 
@@ -133,7 +146,7 @@ class AccountControllerIntegrationTest {
             .andExpect(jsonPath("$.totalElements").value(1))
             .andExpect(jsonPath("$.items", hasSize<Any>(1)))
             .andExpect(jsonPath("$.items[0].id").value(accountId))
-            .andExpect(jsonPath("$.items[0].availableBalance").value("500.0000"))
+            .andExpect(jsonPath("$.items[0].availableBalance").value("0.0000"))
 
         // Get single account
         mockMvc.perform(
@@ -142,7 +155,7 @@ class AccountControllerIntegrationTest {
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.id").value(accountId))
-            .andExpect(jsonPath("$.availableBalance").value("500.0000"))
+            .andExpect(jsonPath("$.availableBalance").value("0.0000"))
     }
 
     @Test
@@ -189,5 +202,75 @@ class AccountControllerIntegrationTest {
         )
             .andExpect(status().isNotFound)
             .andExpect(jsonPath("$.errorCode").value("RESOURCE_NOT_FOUND"))
+    }
+
+    @Test
+    @DisplayName("H-11: Customer account creation with non-zero initialDeposit is rejected with 422")
+    fun customerAccountCreationWithInitialDepositRejected() {
+        val request = CreateAccountRequest(
+            accountType = AccountType.CHECKING,
+            currency = "GBP",
+            initialDeposit = BigDecimal("5000.0000")
+        )
+
+        mockMvc.perform(
+            post("/api/v1/accounts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer $token")
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isUnprocessableEntity)
+            .andExpect(jsonPath("$.errorCode").value("VALIDATION_FAILED"))
+    }
+
+    @Test
+    @DisplayName("H-11: Admin teller deposit successfully credits account balance")
+    fun adminTellerDepositCreditsAccount() {
+        val createRequest = CreateAccountRequest(
+            accountType = AccountType.CHECKING,
+            currency = "GBP",
+            initialDeposit = BigDecimal.ZERO
+        )
+
+        val createResult = mockMvc.perform(
+            post("/api/v1/accounts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer $token")
+                .content(objectMapper.writeValueAsString(createRequest))
+        ).andReturn()
+
+        val accountId = objectMapper.readTree(createResult.response.contentAsString).get("id").asText()
+
+        // Admin deposits 250.0000
+        val depositPayload = """{"amount":"250.0000","reference":"CASH_BRANCH_01"}"""
+        mockMvc.perform(
+            post("/api/v1/accounts/$accountId/deposits")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer $adminToken")
+                .content(depositPayload)
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.availableBalance").value("250.0000"))
+            .andExpect(jsonPath("$.ledgerBalance").value("250.0000"))
+
+        // Customer verifies balance
+        mockMvc.perform(
+            get("/api/v1/accounts/$accountId")
+                .header("Authorization", "Bearer $token")
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.availableBalance").value("250.0000"))
+    }
+
+    @Test
+    @DisplayName("H-11: Customer cannot perform direct deposit (requires ROLE_ADMIN)")
+    fun customerDepositForbidden() {
+        mockMvc.perform(
+            post("/api/v1/accounts/${UUID.randomUUID()}/deposits")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer $token")
+                .content("""{"amount":"100.0000"}""")
+        )
+            .andExpect(status().isForbidden)
     }
 }

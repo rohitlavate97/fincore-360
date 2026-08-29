@@ -60,6 +60,43 @@ class AccountService(
         return account.toView()
     }
 
+    @Transactional
+    fun depositCash(
+        accountId: UUID,
+        amount: BigDecimal,
+        actorId: UUID,
+        reference: String? = null,
+        httpRequest: HttpServletRequest? = null
+    ): AccountView {
+        if (amount <= BigDecimal.ZERO) {
+            throw ConflictException("Deposit amount must be positive")
+        }
+        val account = accountRepository.findById(accountId)
+            .orElseThrow { ResourceNotFoundException("Account not found") }
+
+        if (account.status != AccountStatus.ACTIVE) {
+            throw AccountNotActiveException("Cannot deposit to inactive account")
+        }
+
+        val scaled = amount.setScale(4, RoundingMode.HALF_UP)
+        account.ledgerBalance = account.ledgerBalance.add(scaled)
+        account.availableBalance = account.availableBalance.add(scaled)
+        account.updatedAt = Instant.now()
+        val saved = accountRepository.save(account)
+
+        auditLog(
+            eventType = "ACCOUNT_DEPOSIT",
+            actorId = actorId,
+            actorRole = "ROLE_ADMIN",
+            resourceId = saved.id,
+            outcome = "SUCCESS",
+            reason = "Teller cash deposit: $scaled ${saved.currency} (Ref: ${reference ?: "CASH"})",
+            httpRequest = httpRequest
+        )
+
+        return saved.toView()
+    }
+
     @Transactional(readOnly = true)
     fun getAccountsByCustomer(customerId: UUID, page: Int, size: Int): PagedResult<AccountView> {
         val safePage = if (page < 0) 0 else page

@@ -39,3 +39,10 @@ data class PagedAccountResponse(
     val totalPages: Int,
     val hasNext: Boolean
 )
+
+data class DepositRequest(
+    @field:DecimalMin(value = "0.0100", message = "Deposit amount must be at least 0.0100")
+    val amount: BigDecimal,
+    val reference: String? = null
+)
+

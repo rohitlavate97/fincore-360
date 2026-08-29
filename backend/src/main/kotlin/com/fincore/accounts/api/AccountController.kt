@@ -80,6 +80,13 @@ class AccountController(
         httpRequest: HttpServletRequest
     ): ResponseEntity<AccountResponse> {
         val targetCustomerId = resolveCustomerId(jwt, customerId)
+        val roles = jwt.getClaimAsStringList("roles") ?: emptyList()
+        val isAdmin = roles.contains("ROLE_ADMIN")
+
+        if (!isAdmin && request.initialDeposit > java.math.BigDecimal.ZERO) {
+            throw com.fincore.shared.error.InitialDepositNotAllowedException()
+        }
+
         val command = CreateAccountCommand(
             customerId = targetCustomerId,
             accountType = request.accountType,
@@ -89,6 +96,26 @@ class AccountController(
         val account = accountService.createAccount(command, httpRequest)
         val response = account.toResponse()
         return ResponseEntity.created(URI.create("/api/v1/accounts/${account.id}")).body(response)
+    }
+
+    @PostMapping("/{id}/deposits")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Teller/Admin cash deposit to account")
+    fun deposit(
+        @PathVariable id: UUID,
+        @AuthenticationPrincipal jwt: Jwt,
+        @Valid @RequestBody request: com.fincore.accounts.api.dto.DepositRequest,
+        httpRequest: HttpServletRequest
+    ): ResponseEntity<AccountResponse> {
+        val actorId = UUID.fromString(jwt.subject)
+        val updated = accountService.depositCash(
+            accountId = id,
+            amount = request.amount,
+            actorId = actorId,
+            reference = request.reference,
+            httpRequest = httpRequest
+        )
+        return ResponseEntity.ok(updated.toResponse())
     }
 
     private fun resolveCustomerId(jwt: Jwt, requestedCustomerId: UUID?): UUID {

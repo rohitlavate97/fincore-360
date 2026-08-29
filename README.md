@@ -30,29 +30,32 @@ See [PROJECT-STATUS.md](PROJECT-STATUS.md) and [AUDIT.md](AUDIT.md) for detailed
 
 ---
 
-## Quickstart
+## Quickstart & Local Setup
+
+> 📖 **Complete Step-by-Step Guide:** See [LOCAL-SETUP.md](LOCAL-SETUP.md) for full instructions on running the entire platform via Docker Compose or standalone development services.
 
 ### Prerequisites
 - **JDK 25** (Temurin 25.0.3 LTS recommended)
 - **Node.js 22** & npm
-- **Android SDK** (API Level 37 compileSdk, API 36 targetSdk)
+- **Docker & Compose** (PostgreSQL, Prometheus, Grafana)
+- **Android SDK** (API Level 36 targetSdk)
 
 ### 1. Backend Service
 ```bash
 cd backend
 ./gradlew test
-./gradlew bootJar
+./gradlew bootRun
 ```
-*Executes all unit, integration, double-entry ledger reconciliation, and failure simulation tests against embedded PostgreSQL.*
+*Executes all unit, integration, double-entry ledger reconciliation, and failure simulation tests against embedded PostgreSQL, and runs on `http://localhost:8080`.*
 
 ### 2. Web Portal
 ```bash
 cd web
 npm install
 npm test
-npm run build
+npm run dev
 ```
-*Runs all Vitest component tests and builds production distribution assets.*
+*Runs on `http://localhost:5173` with Vite hot-reload and automated backend proxying.*
 
 ### 3. Android Application
 ```bash
@@ -60,7 +63,7 @@ cd android
 ./gradlew test
 ./gradlew assembleDebug
 ```
-*Compiles all 16 modules, runs unit test suites, and packages APK.*
+*Compiles all 13 modules, runs unit test suites, and packages APK.*
 
 ---
 

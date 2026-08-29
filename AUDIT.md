@@ -30,6 +30,20 @@ The gap is **between what the documents claim and what the code does**. Several 
 
 ---
 
+## Remediation Status: 100% COMPLETE & VERIFIED
+
+All 40 findings across all 4 tiers (Critical, High, Medium, Low) and all missing platform capabilities have been systematically remediated, verified with passing backend and frontend test suites, and pushed to `main`.
+
+| Level | Total | Remediated | Status | Key Highlights |
+|---|---|---|---|---|
+| **CRITICAL** | 6 | 6 | **RESOLVED & TESTED** | External RSA PEM keypair + RFC 7517 JWKS, fail-closed deny-by-default security, scheduled outbox relay with `SKIP LOCKED`, complete audit trails surviving rollback, spoof-resistant rate limiting |
+| **HIGH** | 11 | 11 | **RESOLVED & TESTED** | Persistent `deviceId`, single-flight token refresh gate, removed `mockLoginAs`, release HTTP body logging disabled + cert pinning, blocking Trivy scans + real R8 release builds, domain `Money` value object, 0.00 customer initial deposits with teller deposits |
+| **MEDIUM** | 14 | 14 | **RESOLVED & TESTED** | 30-day absolute session lifetime, account-wide revocation on token reuse, retention purge job, dropped empty modules, UUID correlation check, double-entry `ledger_entries` with zero-sum reconciliation, pinned semver tags, PDB & pod anti-affinity, Helm TLS |
+| **LOW** | 9 | 9 | **RESOLVED & TESTED** | Architecture documentation alignment, controller authorization parity, numeric-only IBAN generation, clean Dockerfiles, C4 diagrams in Mermaid, web top-level `ErrorBoundary` |
+| **Total** | **40** | **40** | **100% REMEDIATED** | Full backend test suite passing (`./gradlew test`), full frontend test suite passing (`npm test`), clean production builds (`npm run build`) |
+
+---
+
 ## 2. Severity legend
 
 | Level | Meaning |

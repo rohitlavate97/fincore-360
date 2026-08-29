@@ -1,0 +1,14 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fincore-backend-pdb
+  namespace: fincore
+  labels:
+    app.kubernetes.io/name: fincore-backend
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: fincore-360
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fincore-backend

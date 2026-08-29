@@ -9,7 +9,7 @@ backend:
   image:
     repository: fincore-backend
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "1.0.0"
   service:
     type: ClusterIP
     port: 8080
@@ -40,7 +40,7 @@ web:
   image:
     repository: fincore-web
     pullPolicy: IfNotPresent
-    tag: "latest"
+    tag: "1.0.0"
   service:
     type: ClusterIP
     port: 80
@@ -57,7 +57,7 @@ ingress:
   className: "nginx"
   annotations:
     kubernetes.io/ingress.class: "nginx"
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
   hosts:
     - host: banking.fincore360.internal
       paths:
@@ -67,7 +67,10 @@ ingress:
         - path: /
           pathType: Prefix
           service: web
-  tls: []
+  tls:
+    - secretName: fincore-tls-secret
+      hosts:
+        - banking.fincore360.internal
 
 migration:
   enabled: true

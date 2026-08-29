@@ -15,6 +15,7 @@ resources:
   - ingress.yaml
   - migration-job.yaml
   - network-policy.yaml
+  - pdb.yaml
 
 commonLabels:
   app.kubernetes.io/managed-by: kustomize

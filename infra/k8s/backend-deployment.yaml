@@ -36,9 +36,21 @@ spec:
         fsGroup: 10001
         seccompProfile:
           type: RuntimeDefault
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - fincore-backend
+                topologyKey: kubernetes.io/hostname
       containers:
         - name: backend
-          image: fincore-backend:latest
+          image: fincore-backend:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

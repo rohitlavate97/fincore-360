@@ -95,3 +95,14 @@ fincore:
     relay:
       enabled: ${FINCORE_OUTBOX_RELAY_ENABLED:true}
       interval-ms: ${FINCORE_OUTBOX_RELAY_INTERVAL_MS:2000}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+

@@ -32,7 +32,8 @@ See [PROJECT-STATUS.md](PROJECT-STATUS.md) and [AUDIT.md](AUDIT.md) for detailed
 
 ## Quickstart & Local Setup
 
-> 📖 **Complete Step-by-Step Guide:** See [LOCAL-SETUP.md](LOCAL-SETUP.md) for full instructions on running the entire platform via Docker Compose or standalone development services.
+> 📖 **Developer Guide:** See [LOCAL-SETUP.md](LOCAL-SETUP.md) for technical setup and Docker commands.  
+> 🏦 **Business & Operations Manual:** See [BUSINESS-USER-GUIDE.md](BUSINESS-USER-GUIDE.md) for non-technical user workflows, roles, and branch operations.
 
 ### Prerequisites
 - **JDK 25** (Temurin 25.0.3 LTS recommended)

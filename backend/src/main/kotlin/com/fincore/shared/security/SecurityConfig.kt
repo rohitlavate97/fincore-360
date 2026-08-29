@@ -55,22 +55,20 @@ class SecurityConfig(
             }
             .authorizeHttpRequests {
                 it.requestMatchers(
-                    "/actuator/**",
-                    "/v3/api-docs/**",
-                    "/swagger-ui/**",
-                    "/swagger-ui.html",
+                    "/actuator/health/**",
+                    "/actuator/info",
                     "/api/v1/auth/**"
                 ).permitAll()
                 it.requestMatchers(
-                    "/api/v1/customer/**",
-                    "/api/v1/admin/**",
-                    "/api/v1/accounts/**",
-                    "/api/v1/transfers/**",
-                    "/api/v1/transactions/**",
-                    "/api/v1/audit/**",
-                    "/api/v1/notifications/**"
-                ).authenticated()
-                it.anyRequest().permitAll()
+                    "/actuator/prometheus",
+                    "/actuator/metrics/**"
+                ).hasRole("ADMIN")
+                it.requestMatchers(
+                    "/v3/api-docs/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html"
+                ).hasRole("ADMIN")
+                it.anyRequest().authenticated()
             }
             .oauth2ResourceServer { oauth2 ->
                 oauth2.jwt { jwt ->

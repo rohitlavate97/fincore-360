@@ -66,6 +66,8 @@ class ObservabilityMetricsIntegrationTest {
     private lateinit var destCustomer: Customer
     private lateinit var testUser: User
     private lateinit var testToken: String
+    private lateinit var adminUser: User
+    private lateinit var adminToken: String
     private lateinit var sourceAccount: Account
     private lateinit var destinationAccount: Account
 
@@ -100,6 +102,17 @@ class ObservabilityMetricsIntegrationTest {
             )
         )
         testToken = jwtTokenService.createAccessToken(testUser)
+
+        adminUser = userRepository.save(
+            User(
+                username = "admin_$unique",
+                email = "admin_$unique@bank.test",
+                passwordHash = "hash",
+                roles = Role.ADMIN.authority,
+                status = UserStatus.ACTIVE
+            )
+        )
+        adminToken = jwtTokenService.createAccessToken(adminUser)
 
         sourceAccount = accountRepository.save(
             Account(
@@ -156,7 +169,10 @@ class ObservabilityMetricsIntegrationTest {
 
         // 3. Inspect actuator metrics endpoint for fincore.transfers.failed
         // Directly answers the exit criterion: "How many transfers failed in the last hour, and why?"
-        mockMvc.perform(get("/actuator/metrics/fincore.transfers.failed"))
+        mockMvc.perform(
+            get("/actuator/metrics/fincore.transfers.failed")
+                .header("Authorization", "Bearer $adminToken")
+        )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("fincore.transfers.failed"))
             .andExpect(jsonPath("$.measurements[0].value").value(1.0))
@@ -164,9 +180,29 @@ class ObservabilityMetricsIntegrationTest {
             .andExpect(jsonPath("$.availableTags[0].values[0]").value("INSUFFICIENT_FUNDS"))
 
         // 4. Query specifically filtered by tag reason:INSUFFICIENT_FUNDS
-        mockMvc.perform(get("/actuator/metrics/fincore.transfers.failed?tag=reason:INSUFFICIENT_FUNDS"))
+        mockMvc.perform(
+            get("/actuator/metrics/fincore.transfers.failed?tag=reason:INSUFFICIENT_FUNDS")
+                .header("Authorization", "Bearer $adminToken")
+        )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.name").value("fincore.transfers.failed"))
             .andExpect(jsonPath("$.measurements[0].value").value(1.0))
+    }
+
+    @Test
+    @DisplayName("C-3: Unauthenticated request to /actuator/metrics returns 401")
+    fun unauthenticatedAccessToMetricsReturns401() {
+        mockMvc.perform(get("/actuator/metrics"))
+            .andExpect(status().isUnauthorized)
+    }
+
+    @Test
+    @DisplayName("C-3: Non-admin request to /actuator/metrics returns 403 FORBIDDEN")
+    fun nonAdminAccessToMetricsReturns403() {
+        mockMvc.perform(
+            get("/actuator/metrics")
+                .header("Authorization", "Bearer $testToken")
+        )
+            .andExpect(status().isForbidden)
     }
 }

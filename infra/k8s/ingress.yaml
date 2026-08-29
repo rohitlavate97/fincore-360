@@ -29,13 +29,6 @@ spec:
                 name: fincore-backend
                 port:
                   number: 8080
-          - path: /actuator
-            pathType: Prefix
-            backend:
-              service:
-                name: fincore-backend
-                port:
-                  number: 8080
           - path: /
             pathType: Prefix
             backend:

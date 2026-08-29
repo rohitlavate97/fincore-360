@@ -64,9 +64,6 @@ ingress:
         - path: /api
           pathType: Prefix
           service: backend
-        - path: /actuator
-          pathType: Prefix
-          service: backend
         - path: /
           pathType: Prefix
           service: web

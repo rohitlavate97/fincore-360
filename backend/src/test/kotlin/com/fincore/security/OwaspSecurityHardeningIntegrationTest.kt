@@ -135,4 +135,13 @@ class OwaspSecurityHardeningIntegrationTest {
             .andExpect(jsonPath("$.errorCode").value("AUTHENTICATION_FAILED"))
             .andExpect(jsonPath("$.stackTrace").doesNotExist())
     }
+
+    @Test
+    @DisplayName("C-2: Unmapped endpoint returns 401 UNAUTHORIZED (deny-by-default fail-closed)")
+    fun unmappedEndpointReturnsUnauthorizedByDefault() {
+        mockMvc.perform(
+            get("/api/v1/unmapped-endpoint-path")
+        )
+            .andExpect(status().isUnauthorized)
+    }
 }

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fincore-config
+  namespace: fincore
+  labels:
+    app.kubernetes.io/name: fincore-config
+    app.kubernetes.io/part-of: fincore-360
+data:
+  APP_ENV: "production"
+  LOG_FORMAT: "ecs"
+  LOG_LEVEL_FINCORE: "INFO"
+  DB_PORT: "5432"
+  DB_NAME: "fincore"
+  DB_POOL_MAX: "20"
+  SPRING_PROFILES_ACTIVE: "prod"
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,metrics,prometheus"

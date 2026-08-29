@@ -1,0 +1,59 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: fincore-zero-trust-network-policy
+  namespace: fincore
+  labels:
+    app.kubernetes.io/part-of: fincore-360
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+
+  # ── INGRESS RULES ─────────────────────────────────────────────
+  ingress:
+    # Allow traffic from ingress controller to Web Portal
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 8080
+
+    # Allow Web Portal to talk to Backend
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: fincore-web
+      ports:
+        - protocol: TCP
+          port: 8080
+
+    # Allow Prometheus to scrape Actuator metrics
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8080
+
+  # ── EGRESS RULES ──────────────────────────────────────────────
+  egress:
+    # Core DNS resolution
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+    # Backend egress to PostgreSQL Database
+    - ports:
+        - protocol: TCP
+          port: 5432

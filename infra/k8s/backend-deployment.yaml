@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fincore-backend
+  namespace: fincore
+  labels:
+    app.kubernetes.io/name: fincore-backend
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: fincore-360
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fincore-backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fincore-backend
+        app.kubernetes.io/component: backend
+        app.kubernetes.io/part-of: fincore-360
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "8080"
+    spec:
+      # Enforce restricted Pod Security Standard at pod level
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: backend
+          image: fincore-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          # Container-level least-privilege security context
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          envFrom:
+            - configMapRef:
+                name: fincore-config
+            - secretRef:
+                name: fincore-secrets
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+          # ── THREE DISTINCT PROBES (DEPLOYMENT.md §4 & OBSERVABILITY.md §4) ──
+          # 1. Startup Probe: Allows application initial warmup without premature killing
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            failureThreshold: 20
+
+          # 2. Readiness Probe: Checks dependencies (PostgreSQL); removes pod from Service endpoints if DB is down
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          # 3. Liveness Probe: Checks ONLY process health; MUST NOT check DB to avoid cascading restart storm!
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          lifecycle:
+            preStop:
+              exec:
+                # Allow ingress/service endpoints to drain active in-flight banking requests
+                command: ["/bin/sh", "-c", "sleep 10"]
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+
+      volumes:
+        - name: tmp
+          emptyDir: {}

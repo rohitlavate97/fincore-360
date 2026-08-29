@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fincore-flyway-migration
+  namespace: fincore
+  labels:
+    app.kubernetes.io/name: fincore-flyway-migration
+    app.kubernetes.io/component: migration
+    app.kubernetes.io/part-of: fincore-360
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fincore-flyway-migration
+        app.kubernetes.io/component: migration
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: flyway-migration
+          image: flyway/flyway:10-alpine
+          args:
+            - "-url=$(DB_URL)"
+            - "-user=$(DB_USERNAME)"
+            - "-password=$(DB_PASSWORD)"
+            - "-connectRetries=10"
+            - "migrate"
+          envFrom:
+            - secretRef:
+                name: fincore-secrets
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL

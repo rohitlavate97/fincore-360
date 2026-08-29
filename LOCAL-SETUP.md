@@ -148,6 +148,84 @@ The Vite dev server is pre-configured to proxy `/api` requests directly to `http
 
 ---
 
+### Step 5: Building the Android APK & Bundle
+
+You can generate the Android APK packages directly from the command line without opening Android Studio.
+
+#### 1. Build Debug APK (Fast, unminified, debuggable)
+Use this for local testing on emulators and physical test devices:
+
+**On Windows (PowerShell):**
+```powershell
+cd android
+.\gradlew.bat assembleDebug
+```
+
+**On Linux / macOS:**
+```bash
+cd android
+./gradlew assembleDebug
+```
+
+📍 **Output file location:**
+`android/app/build/outputs/apk/debug/app-debug.apk`
+
+---
+
+#### 2. Build Release APK (R8 Minified, ProGuard Optimized)
+Applies full R8 code shrinking and resource optimization:
+
+**On Windows (PowerShell):**
+```powershell
+cd android
+.\gradlew.bat assembleRelease
+```
+
+**On Linux / macOS:**
+```bash
+cd android
+./gradlew assembleRelease
+```
+
+📍 **Output file location:**
+`android/app/build/outputs/apk/release/app-release.apk`
+
+---
+
+#### 3. Build Google Play Android App Bundle (.aab)
+For publishing to the Google Play Store:
+
+```bash
+cd android
+./gradlew bundleRelease       # Linux/macOS
+.\gradlew.bat bundleRelease   # Windows
+```
+
+📍 **Output file location:**
+`android/app/build/outputs/bundle/release/app-release.aab`
+
+---
+
+#### 4. Installing the APK on a Connected Device or Emulator
+Ensure your phone has **USB Debugging** enabled, or start an Android Emulator:
+
+```bash
+# Verify device is connected
+adb devices
+
+# Install APK (the -r flag reinstalls while keeping existing app data)
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
+*(Alternatively, drag and drop the `.apk` file directly onto the running Android emulator window).*
+
+---
+
+#### 5. Building via Android Studio GUI
+1. In Android Studio, go to the top menu: **Build** → **Build Bundle(s) / APK(s)** → **Build APK(s)**.
+2. When the build completes, click the **locate** link in the popup balloon to open the folder containing `app-debug.apk`.
+
+---
+
 ## 4. End-to-End Walkthrough via cURL / Postman
 
 Here is a quick walkthrough to verify core banking workflows locally:

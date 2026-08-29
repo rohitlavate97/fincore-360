@@ -194,7 +194,8 @@ class AccountService(
             destinationCustomerId = destAccount.customerId,
             amount = normalizedAmount,
             currency = currency.uppercase().trim(),
-            sourceRemainingBalance = sourceAccount.availableBalance.toPlainString()
+            sourceRemainingBalance = sourceAccount.availableBalance.toPlainString(),
+            destinationRemainingBalance = destAccount.availableBalance.toPlainString()
         )
     }
     private fun generateUniqueAccountNumber(): String {

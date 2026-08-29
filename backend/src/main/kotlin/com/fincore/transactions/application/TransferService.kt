@@ -6,9 +6,12 @@ import com.fincore.shared.correlation.CorrelationIdFilter
 import com.fincore.shared.idempotency.IdempotencyResolution
 import com.fincore.shared.idempotency.IdempotencyService
 import com.fincore.shared.outbox.OutboxService
+import com.fincore.transactions.domain.LedgerDirection
+import com.fincore.transactions.domain.LedgerEntry
 import com.fincore.transactions.domain.Transaction
 import com.fincore.transactions.domain.TransactionStatus
 import com.fincore.transactions.domain.TransactionType
+import com.fincore.transactions.infrastructure.LedgerEntryRepository
 import com.fincore.transactions.infrastructure.TransactionRepository
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.stereotype.Service
@@ -26,6 +29,7 @@ class TransferService(
     private val auditLogRepository: AuditLogRepository,
     private val outboxService: OutboxService,
     private val objectMapper: ObjectMapper,
+    private val ledgerEntryRepository: LedgerEntryRepository,
     private val bankingMetricsService: com.fincore.shared.observability.BankingMetricsService? = null
 ) {
 
@@ -104,13 +108,30 @@ class TransferService(
 
         try {
             // 4. Execute balance transfer under deterministic pessimistic lock
-            accountService.executeTransferBalances(
+            val balanceSummary = accountService.executeTransferBalances(
                 sourceAccountId = command.sourceAccountId,
                 destinationAccountId = command.destinationAccountId,
                 amount = command.amount,
                 currency = command.currency,
                 callerCustomerId = command.callerCustomerId
             )
+
+            // Double-entry ledger recording (M-7): Write paired DEBIT & CREDIT entries with running balances
+            val debitEntry = LedgerEntry(
+                transactionId = transaction.id,
+                accountId = command.sourceAccountId,
+                direction = LedgerDirection.DEBIT,
+                amount = transaction.amount,
+                runningBalance = java.math.BigDecimal(balanceSummary.sourceRemainingBalance)
+            )
+            val creditEntry = LedgerEntry(
+                transactionId = transaction.id,
+                accountId = command.destinationAccountId,
+                direction = LedgerDirection.CREDIT,
+                amount = transaction.amount,
+                runningBalance = java.math.BigDecimal(balanceSummary.destinationRemainingBalance)
+            )
+            ledgerEntryRepository.saveAll(listOf(debitEntry, creditEntry))
 
             // 5. Transition to COMPLETED
             transaction.transitionTo(TransactionStatus.COMPLETED)

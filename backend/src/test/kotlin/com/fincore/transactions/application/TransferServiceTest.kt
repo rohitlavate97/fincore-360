@@ -33,6 +33,7 @@ class TransferServiceTest {
     private val auditLogRepository = mockk<AuditLogRepository>(relaxed = true)
     private val outboxService = mockk<OutboxService>(relaxed = true)
     private val objectMapper = ObjectMapper()
+    private val ledgerEntryRepository = mockk<com.fincore.transactions.infrastructure.LedgerEntryRepository>(relaxed = true)
 
     private val transferService = TransferService(
         transactionRepository = transactionRepository,
@@ -40,7 +41,8 @@ class TransferServiceTest {
         idempotencyService = idempotencyService,
         auditLogRepository = auditLogRepository,
         outboxService = outboxService,
-        objectMapper = objectMapper
+        objectMapper = objectMapper,
+        ledgerEntryRepository = ledgerEntryRepository
     )
 
     @Test
@@ -67,7 +69,16 @@ class TransferServiceTest {
             IdempotencyResolution.Proceed(record)
 
         every { transactionRepository.saveAndFlush(any()) } answers { firstArg() }
-        every { accountService.executeTransferBalances(any(), any(), any(), any(), any()) } returns mockk()
+        every { accountService.executeTransferBalances(any(), any(), any(), any(), any()) } returns com.fincore.accounts.application.TransferAccountsSummary(
+            sourceAccountId = command.sourceAccountId,
+            sourceCustomerId = command.callerCustomerId ?: UUID.randomUUID(),
+            destinationAccountId = command.destinationAccountId,
+            destinationCustomerId = UUID.randomUUID(),
+            amount = command.amount,
+            currency = command.currency,
+            sourceRemainingBalance = "400.0000",
+            destinationRemainingBalance = "200.0000"
+        )
         every { idempotencyService.complete(any(), 201, any()) } returns mockk()
 
         val result = transferService.executeTransfer(command)
@@ -75,6 +86,16 @@ class TransferServiceTest {
         assertEquals("COMPLETED", result.status)
         assertEquals("100.0000", result.amount)
         assertFalse(result.replayed)
+
+        // Verify double-entry ledger entries saved (M-7)
+        verify(exactly = 1) {
+            ledgerEntryRepository.saveAll(match<List<com.fincore.transactions.domain.LedgerEntry>> {
+                it.size == 2 &&
+                it[0].direction == com.fincore.transactions.domain.LedgerDirection.DEBIT &&
+                it[1].direction == com.fincore.transactions.domain.LedgerDirection.CREDIT &&
+                it[0].amount == it[1].amount
+            })
+        }
 
         // Verify initiation -> completion audit trail
         verify(exactly = 1) {

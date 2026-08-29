@@ -40,5 +40,6 @@ data class TransferAccountsSummary(
     val destinationCustomerId: UUID,
     val amount: BigDecimal,
     val currency: String,
-    val sourceRemainingBalance: String
+    val sourceRemainingBalance: String,
+    val destinationRemainingBalance: String
 )

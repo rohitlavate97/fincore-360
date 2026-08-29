@@ -1,5 +1,6 @@
 package com.fincore.core.network.di
 
+import com.fincore.core.network.BuildConfig
 import com.fincore.core.network.authenticator.TokenAuthenticator
 import com.fincore.core.network.interceptor.AuthInterceptor
 import com.fincore.core.network.interceptor.CorrelationIdInterceptor
@@ -9,6 +10,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
+import okhttp3.CertificatePinner
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -24,8 +26,7 @@ object NetworkModule {
     @Singleton
     fun provideNetworkMonitor(networkMonitor: com.fincore.core.network.monitor.ConnectivityManagerNetworkMonitor): com.fincore.core.network.monitor.NetworkMonitor = networkMonitor
 
-
-    private const val BASE_URL = "https://api.fincore.com/"
+    val BASE_URL: String = BuildConfig.BASE_URL
 
     @Provides
     @Singleton
@@ -49,15 +50,31 @@ object NetworkModule {
         authInterceptor: AuthInterceptor,
         tokenAuthenticator: TokenAuthenticator
     ): OkHttpClient {
+        // H-5: Disable plaintext HTTP body logging in release builds to prevent leaking tokens/PII
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.ENABLE_NETWORK_LOGS) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
         }
-        return OkHttpClient.Builder()
+
+        val builder = OkHttpClient.Builder()
             .addInterceptor(CorrelationIdInterceptor())
             .addInterceptor(authInterceptor)
             .authenticator(tokenAuthenticator)
             .addInterceptor(loggingInterceptor)
-            .build()
+
+        // H-6 / ADR-011: Enforce Certificate Pinning for production release builds
+        if (!BuildConfig.ENABLE_NETWORK_LOGS) {
+            val pinner = CertificatePinner.Builder()
+                .add("api.fincore.com", "sha256/k2oTKiTGoQUfl+MYxW8KTJYupCWZZfZMWdwIpDXqJzs=")
+                .add("api.fincore.com", "sha256/WoiWRyIOVNa9ihaBciRSC7XHjliYS9VwUGOIud4PB18=")
+                .build()
+            builder.certificatePinner(pinner)
+        }
+
+        return builder.build()
     }
 
     @Provides

@@ -11,6 +11,23 @@ android {
 
     defaultConfig {
         minSdk = 29
+        buildConfigField("String", "BASE_URL", "\"https://api.fincore.com/\"")
+        buildConfigField("boolean", "ENABLE_NETWORK_LOGS", "false")
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    buildTypes {
+        debug {
+            buildConfigField("String", "BASE_URL", "\"https://api.fincore.com/\"")
+            buildConfigField("boolean", "ENABLE_NETWORK_LOGS", "true")
+        }
+        release {
+            buildConfigField("String", "BASE_URL", "\"https://api.fincore.com/\"")
+            buildConfigField("boolean", "ENABLE_NETWORK_LOGS", "false")
+        }
     }
 
     compileOptions {

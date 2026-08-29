@@ -9,7 +9,7 @@ WORKDIR /build
 # Dependency cache layer
 COPY backend/gradle ./gradle
 COPY backend/gradlew backend/settings.gradle.kts backend/build.gradle.kts ./
-RUN chmod +x ./gradlew && ./gradlew dependencies --no-daemon || true
+RUN chmod +x ./gradlew && ./gradlew dependencies --no-daemon
 
 # Copy source and build executable bootJar without tests (tests verified in CI stage)
 COPY backend/src ./src

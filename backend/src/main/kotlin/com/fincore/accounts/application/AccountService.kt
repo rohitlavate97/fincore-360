@@ -200,7 +200,7 @@ class AccountService(
     }
     private fun generateUniqueAccountNumber(): String {
         var attempts = 0
-        while (attempts < 10) {
+        while (attempts < 50) {
             val digits = StringBuilder()
             repeat(14) { digits.append(random.nextInt(10)) }
             val candidate = "GB29FINC$digits"
@@ -209,7 +209,7 @@ class AccountService(
             }
             attempts++
         }
-        return "GB29FINC" + UUID.randomUUID().toString().replace("-", "").take(14).uppercase()
+        throw IllegalStateException("Failed to generate unique numeric account number after $attempts attempts")
     }
 
     private fun Account.toView(): AccountView = AccountView(

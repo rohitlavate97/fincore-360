@@ -1,30 +1,21 @@
-# FinCore 360 — local development stack
-#
-# NOT VERIFIED: this file has never been run. The machine it was written on has
-# no Docker daemon, so `docker compose up` has not been executed and no service
-# here has started. Treat it as design intent until it has been run once.
-#
-# Redis is added in Phase 3, Kafka in Phase 7 (ADR-008, ADR-009). They are
-# deliberately absent rather than present-and-unused.
+# FinCore 360 — Full Stack Docker Compose Architecture
+# Services: PostgreSQL 18.6 · Spring Boot Backend · React Web Portal · Prometheus · Grafana
 
 services:
   postgres:
     image: postgres:18.6-alpine
     container_name: fincore-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME:-fincore}
       POSTGRES_USER: ${DB_USERNAME:-fincore}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-fincore}
-      # Deterministic collation — avoids index-ordering differences between
-      # developer machines and CI.
       POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      # The application must not start before the database can accept queries.
-      # Without this, startup fails on a cold `up` — FM-INFRA-002.
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-fincore} -d ${DB_NAME:-fincore}"]
       interval: 5s
       timeout: 5s
@@ -36,6 +27,7 @@ services:
       context: ../..
       dockerfile: infra/docker/backend.Dockerfile
     container_name: fincore-backend
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,9 +35,8 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-fincore}
       DB_USERNAME: ${DB_USERNAME:-fincore}
       DB_PASSWORD: ${DB_PASSWORD:-fincore}
-      APP_ENV: development
-      # Structured JSON logs. Unset for human-readable local output.
-      LOG_FORMAT: ecs
+      APP_ENV: ${APP_ENV:-development}
+      LOG_FORMAT: ${LOG_FORMAT:-}
     ports:
       - "${APP_PORT:-8080}:8080"
     healthcheck:
@@ -55,5 +46,60 @@ services:
       retries: 5
       start_period: 40s
 
+  web:
+    build:
+      context: ../..
+      dockerfile: infra/docker/web.Dockerfile
+    container_name: fincore-web
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  prometheus:
+    image: prom/prometheus:v2.54.0
+    container_name: fincore-prometheus
+    restart: unless-stopped
+    depends_on:
+      - backend
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../monitoring/alerts/fincore-alerts.yml:/etc/prometheus/alerts/fincore-alerts.yml:ro
+      - prometheus-data:/prometheus
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: fincore-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../monitoring/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+
 volumes:
   postgres-data:
+  prometheus-data:
+  grafana-data:

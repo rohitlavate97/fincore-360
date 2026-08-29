@@ -1,0 +1,17 @@
+# FinCore 360 — Prometheus Server Configuration
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "/etc/prometheus/alerts/*.yml"
+
+scrape_configs:
+  - job_name: 'fincore-backend'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['backend:8080']
+        labels:
+          application: 'fincore-banking-backend'
+          environment: 'local-docker'

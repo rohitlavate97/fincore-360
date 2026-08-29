@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 'FinCore 360 Operations'
+    orgId: 1
+    folder: 'Banking Operations'
+    type: file
+    disableDeletion: true
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

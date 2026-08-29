@@ -57,7 +57,8 @@ class SecurityConfig(
                 it.requestMatchers(
                     "/actuator/health/**",
                     "/actuator/info",
-                    "/api/v1/auth/**"
+                    "/api/v1/auth/**",
+                    "/.well-known/jwks.json"
                 ).permitAll()
                 it.requestMatchers(
                     "/actuator/prometheus",

@@ -48,6 +48,14 @@ class JwtConfig(
     fun rsaPrivateKey(): RSAPrivateKey = rsaKeyPair.private as RSAPrivateKey
 
     @Bean
+    fun jwkSet(): JWKSet {
+        val rsaKey = RSAKey.Builder(rsaPublicKey())
+            .keyID(keyId)
+            .build()
+        return JWKSet(rsaKey)
+    }
+
+    @Bean
     fun jwtEncoder(): JwtEncoder {
         val rsaKey = RSAKey.Builder(rsaPublicKey())
             .privateKey(rsaPrivateKey())

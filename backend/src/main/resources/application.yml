@@ -85,6 +85,11 @@ springdoc:
     path: /swagger-ui.html
 
 fincore:
+  security:
+    jwt:
+      private-key: ${JWT_PRIVATE_KEY:}
+      public-key: ${JWT_PUBLIC_KEY:}
+      key-id: ${JWT_KEY_ID:fincore-signing-key-1}
   outbox:
     relay:
       enabled: ${FINCORE_OUTBOX_RELAY_ENABLED:true}

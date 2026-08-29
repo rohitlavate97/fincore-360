@@ -15,6 +15,7 @@ class JwtTokenService(
 ) {
     companion object {
         const val ISSUER = "https://api.fincore.com"
+        const val AUDIENCE = "fincore-api"
         const val ACCESS_TOKEN_EXPIRY_MINUTES = 15L
     }
 
@@ -22,6 +23,7 @@ class JwtTokenService(
         val now = Instant.now()
         val claims = JwtClaimsSet.builder()
             .issuer(ISSUER)
+            .audience(listOf(AUDIENCE))
             .issuedAt(now)
             .expiresAt(now.plus(ACCESS_TOKEN_EXPIRY_MINUTES, ChronoUnit.MINUTES))
             .subject(user.id.toString())

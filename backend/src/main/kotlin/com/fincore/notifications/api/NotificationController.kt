@@ -27,7 +27,7 @@ class NotificationController(
 ) {
 
     @GetMapping
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN')")
     @Operation(summary = "Get paginated notifications for current customer")
     fun getNotifications(
         @AuthenticationPrincipal jwt: Jwt,
@@ -49,7 +49,7 @@ class NotificationController(
     }
 
     @PatchMapping("/{id}/read")
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN')")
     @Operation(summary = "Mark a notification as read")
     fun markAsRead(
         @AuthenticationPrincipal jwt: Jwt,
@@ -61,7 +61,7 @@ class NotificationController(
     }
 
     @GetMapping("/unread-count")
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN')")
     @Operation(summary = "Get unread notification count for current customer")
     fun getUnreadCount(
         @AuthenticationPrincipal jwt: Jwt

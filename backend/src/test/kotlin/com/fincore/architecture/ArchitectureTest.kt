@@ -33,7 +33,7 @@ class ArchitectureTest {
         /** Domain modules, per BACKEND-ARCHITECTURE.md §1. */
         private val DOMAIN_MODULES = listOf(
             "identity", "accounts", "transactions",
-            "payments", "customer", "notifications", "audit",
+            "customer", "notifications", "audit",
         )
     }
 

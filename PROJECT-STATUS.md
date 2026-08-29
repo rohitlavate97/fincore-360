@@ -5,7 +5,7 @@
 > If a capability is not listed under COMPLETED with a verification method,
 > it does not exist.
 
-**Phase:** 13 — DevOps and CI/CD
+**Phase:** 14 — Production Simulation & Chaos Verification (Platform Complete)
 **Last updated:** 2026-08-29
 
 ---
@@ -249,11 +249,24 @@ Toolchain versions verified against official sources on 2026-08-28, not assumed:
 | ADR-018: CI/CD Pipeline, Multi-Environment Containerization, and Deployment Strategy | `ADR-018-CICD-and-Deployment-Strategy.md` approved |
 | **Exit Criterion**: Full pipeline green; staging deploy successful | **100% fulfilled & verified** |
 
+### Phase 14 — Production Simulation & Chaos Verification
+
+| Item | Verified by |
+|---|---|
+| Production simulation integration test suite (`ProductionSimulationIntegrationTest.kt`) simulating decoupled probes, token expiry contracts, rate limiter fail-closed enforcement, duplicate idempotency storms, and outbox broker partitions | `ProductionSimulationIntegrationTest` PASSED (6/6 tests) |
+| Living failure modes catalogue (`PRODUCTION-FAILURE-MODES.md`) upgrading all 21 mandated failure modes from stubs to fully analysed and verified production records | Document review & cross-stack test alignment |
+| Automated chaos failure simulation for outbox worker broker disconnect and catastrophic error contract adherence | `ChaosFailureSimulationIntegrationTest` PASSED |
+| Concurrent balance deduction and ascending row-locking deadlock prevention | `ConcurrentTransferIntegrationTest` PASSED |
+| Concurrent idempotency race and duplicate transfer storm suppression | `ConcurrentTransferIdempotencyIntegrationTest` PASSED |
+| Android single-flight token refresh and Keystore fallback resilience | `TokenAuthenticatorTest`, `TokenManagerTest` PASSED |
+| Android offline mutation protection enforcing ONLINE_ONLY transfers and Room SSOT recovery | `TransferViewModelTest`, `DefaultSyncManagerTest` PASSED |
+| **Exit Criterion**: System behaves as documented in the failure modes catalog | **100% fulfilled & verified** |
+
 ---
 
 ## IN PROGRESS
 
-Phase 13 is 100% complete and fully verified. Ready for Phase 14 (Production Simulation & Chaos Verification).
+All 14 engineering phases of FinCore 360 are 100% complete, verified, and pushed to `origin/main`. Platform is ready for final interview presentation and architectural review.
 
 ---
 
@@ -315,7 +328,7 @@ Phase 13 is 100% complete and fully verified. Ready for Phase 14 (Production Sim
 | 11 | Comprehensive Testing | **Complete** — verified 2026-08-29 | CI green across all test categories |
 | 12 | Observability | **Complete** — verified 2026-08-29 | "How many transfers failed in the last hour?" answerable from a dashboard |
 | 13 | DevOps and CI/CD | **Complete** — verified 2026-08-29 | Full pipeline green; staging deploy successful |
-| 14 | Production Simulation | Not started | System behaves as documented in the failure modes catalog |
+| 14 | Production Simulation | **Complete** — verified 2026-08-29 | System behaves as documented in the failure modes catalog |
 
 ---
 
@@ -338,3 +351,4 @@ Phase 13 is 100% complete and fully verified. Ready for Phase 14 (Production Sim
 | 2026-08-29 | 11 | Comprehensive Testing built end-to-end. ApiContractIntegrationTest verifying strict schema conformity and NUMERIC(19,4) string serialization without stack trace leakage. ChaosFailureSimulationIntegrationTest proving outbox retention and at-least-once retry delivery under downstream broker disconnects. PerformanceBenchmarkTest proving high-throughput capability across Money arithmetic (>100,000 ops/s), rate limiting (>50,000 ops/s), and RS256 token generation. JaCoCo test coverage configured with 86% instruction coverage and 92.5% line coverage across the backend. Full cross-stack regression passing cleanly across Backend, Android (16 modules), and Web. |
 | 2026-08-29 | 12 | Observability built end-to-end across Backend, Monitoring, and Web. BankingMetricsService instrumented across transfer lifecycle and idempotency replays. Actuator metrics endpoint and Prometheus scrape configured, verified by ObservabilityMetricsIntegrationTest proving failed transfers are tracked with reason tags. Prometheus alerting rules defined in fincore-alerts.yml. Complete Grafana operations dashboard created in fincore-operations-dashboard.json with dedicated panels answering "How many transfers failed in the last hour, and why?". Web portal ObservabilityPage implemented with live KPI cards and categorized failure inspector, verified by 19 Vitest tests and production build. |
 | 2026-08-29 | 13 | DevOps and CI/CD built end-to-end across Backend, Android, Web, and Cloud Infrastructure. GitHub Actions multi-pipeline workflows (.github/workflows/) with 6-stage backend, 5-stage Android, 4-stage Web, and staging deployment gates. Multi-stage Docker production images for backend (Temurin 25 JRE, non-root) and web (Node 22 build -> Nginx 1.27 runtime with OWASP headers). Full-stack docker-compose.yml with PostgreSQL 18.6, backend, web, Prometheus, and Grafana. 12 production Kubernetes manifests (infra/k8s/) with restricted Pod Security Standards, decoupled health probes, HPA, and pre-deploy Flyway migration Job. Parameterized Helm chart (infra/helm/fincore-360/) with staging and production values overrides. Enterprise AWS Multi-AZ Terraform IaC (infra/terraform/) with VPC, EKS, KMS-encrypted RDS PostgreSQL, and immutable S3 audit archive. Automated staging smoke test suite (smoke-test.sh/ps1) and automated zero-downtime rollback engine (rollback.sh/ps1). ADR-018 recorded. All exit criteria fulfilled. |
+| 2026-08-29 | 14 | Production Simulation & Chaos Verification built end-to-end. ProductionSimulationIntegrationTest covering decoupled probes, token expiry contracts, rate limiter fail-closed enforcement, duplicate idempotency storms, and outbox broker partitions (6/6 tests passing). Complete living catalogue of all 21 production failure modes (PRODUCTION-FAILURE-MODES.md) upgraded from stubs to fully analysed, verified, and cross-tested production records with symptoms, metrics, PromQL, exact investigation commands, mitigations, architectural fixes, and interview answers. All 14 engineering phases of FinCore 360 are complete, tested, and verified. |

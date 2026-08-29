@@ -61,7 +61,33 @@ class GlobalExceptionHandler {
             HttpStatus.NOT_FOUND,
             ErrorCode.RESOURCE_NOT_FOUND,
             "The requested resource was not found",
-        )    @ExceptionHandler(org.springframework.security.access.AccessDeniedException::class)
+        )
+
+    @ExceptionHandler(IllegalArgumentException::class, ArithmeticException::class)
+    fun handleIllegalArgument(ex: RuntimeException): ResponseEntity<ErrorResponse> {
+        log.warn("Rejected request: {}", ex.message)
+        return respond(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, "The request was not valid")
+    }
+
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException::class)
+    fun handleTypeMismatch(ex: org.springframework.web.method.annotation.MethodArgumentTypeMismatchException): ResponseEntity<ErrorResponse> {
+        log.warn("Type mismatch on parameter '{}': {}", ex.name, ex.message)
+        return respond(HttpStatus.BAD_REQUEST, ErrorCode.MALFORMED_REQUEST, "Parameter '${ex.name}' has an invalid format")
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException::class)
+    fun handleIntegrity(ex: org.springframework.dao.DataIntegrityViolationException): ResponseEntity<ErrorResponse> {
+        log.error("Data integrity violation", ex)
+        return respond(HttpStatus.CONFLICT, ErrorCode.CONFLICT, "The request conflicts with the current state")
+    }
+
+    @ExceptionHandler(org.springframework.dao.CannotAcquireLockException::class, org.springframework.dao.QueryTimeoutException::class)
+    fun handleContention(ex: Exception): ResponseEntity<ErrorResponse> {
+        log.error("Database contention or lock acquisition timeout", ex)
+        return respond(HttpStatus.SERVICE_UNAVAILABLE, ErrorCode.SYSTEM_DEGRADED, "Database is under contention, please retry")
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException::class)
     fun handleAccessDenied(ex: org.springframework.security.access.AccessDeniedException): ResponseEntity<ErrorResponse> =
         respond(
             HttpStatus.FORBIDDEN,

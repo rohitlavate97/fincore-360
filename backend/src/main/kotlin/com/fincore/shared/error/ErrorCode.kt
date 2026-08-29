@@ -32,7 +32,9 @@ enum class ErrorCode {
     // Rate Limiting (Phase 10)
     RATE_LIMIT_EXCEEDED,
 
-    // Infrastructure
+    // Infrastructure & Contention
+    CONFLICT,
+    SYSTEM_DEGRADED,
     DEPENDENCY_UNAVAILABLE,
     INTERNAL_ERROR,
 }

@@ -55,3 +55,36 @@ groups:
           summary: "Brute-force attack or client throttling saturation detected"
           description: "Rate limiter 429 rejections spiking at {{ $value }} events/sec."
           runbook_url: "docs/TROUBLESHOOTING.md#rate-limit-saturation"
+
+      - alert: OutboxRelayBacklogHigh
+        expr: fincore_outbox_pending > 100
+        for: 5m
+        labels:
+          severity: warning
+          tier: messaging
+        annotations:
+          summary: "Transactional outbox pending event backlog exceeds 100"
+          description: "Outbox relay scheduler backlog is growing. Relay may be stalled or downstream throughput is constrained."
+          runbook_url: "docs/TROUBLESHOOTING.md#outbox-backlog"
+
+      - alert: RefreshTokenReuseTheftDetected
+        expr: sum(rate(fincore_audit_events_total{event_type="TOKEN_THEFT_DETECTED"}[5m])) > 0
+        for: 0m
+        labels:
+          severity: critical
+          tier: security
+        annotations:
+          summary: "Compromised refresh token reuse detected — account sessions revoked"
+          description: "A revoked or rotated refresh token was presented by an unauthorized client. Account kill-switch engaged."
+          runbook_url: "docs/TROUBLESHOOTING.md#token-theft"
+
+      - alert: Http5xxRateHighByEndpoint
+        expr: sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) by (uri) / sum(rate(http_server_requests_seconds_count[5m])) by (uri) > 0.01
+        for: 2m
+        labels:
+          severity: critical
+          tier: api
+        annotations:
+          summary: "HTTP 5xx error rate exceeds 1% on endpoint {{ $labels.uri }}"
+          description: "Endpoint {{ $labels.uri }} is throwing server errors at {{ $value | humanizePercentage }}."
+          runbook_url: "docs/TROUBLESHOOTING.md#api-5xx-errors"
